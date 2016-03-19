@@ -1,6 +1,7 @@
 /////////////////////////////////
 // Shot Timer
 // Author: hestenet
+// Canonical Repository: https://github.com/hestenet/arduino-shot-timer
 //    This program is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU Lesser General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
@@ -43,7 +44,7 @@
 //////////////
 
 //Tones for buttons and buzzer
-#include "pitches.h" // musical pitches - optional - format: NOTE_C4
+#include "pitches.h" // musical pitches - optional - format: NOTE_C4 | This include makes no difference to program or dynamic memory
 
 //////////////
 // Libraries - Core
@@ -84,7 +85,7 @@
 #include <MenuBackend.h> //Documentation: http://wiring.org.co/reference/libraries/MenuBackend/index.html
 
 
-#include <StopWatch.h> //http://playground.arduino.cc/Code/StopWatchClass
+//#include <StopWatch.h> //http://playground.arduino.cc/Code/StopWatchClass
 
 //////////////
 // Other code samples used:
@@ -113,20 +114,40 @@
 ///char p_buffer[70]; //progmem P(STRINGS) CANNOT BE LONGER THAN THIS CHARACTER COUNT
 // REDUNDANT WITH F() MACRO?
 
-//Menu Names - format: const char Name[] PROGMEM = ""; <---- this doesn't work with menuBackEnd and I don't know why.
-char startName[] = "[Start]";
-char reviewName[] = "[Review]";
-char parName[] = "Set Par >>";
-char parSetName[] = "<< [Toggle Par]";
-char parTimesName[] = "<< [Par Times]";
-char settingsName[] = "Settings >>";
-char setDelayName[] = "<< [Set Delay]";
-char buzzerName[] = "<< [Buzzr Vol]";
-char sensitivityName[] = "<< [Sensitivity]";
-char echoName[] = "<< [Echo Reject]"; 
+
 
 //////////////
 // CONSTANTS
+//////////////
+
+//Menu Names - format: const char Name[] PROGMEM = ""; <---- this doesn't work with menuBackEnd and I don't know why.
+const char PROGMEM startName[] = "[Start]";
+const char PROGMEM reviewName[] = "[Review]";
+const char PROGMEM parName[] = "Set Par >>";
+const char PROGMEM parSetName[] = "<< [Toggle Par]";
+const char PROGMEM parTimesName[] = "<< [Par Times]";
+const char PROGMEM settingsName[] = "Settings >>";
+const char PROGMEM setDelayName[] = "<< [Set Delay]";
+const char PROGMEM buzzerName[] = "<< [Buzzr Vol]";
+const char PROGMEM sensitivityName[] = "<< [Sensitivity]";
+const char PROGMEM echoName[] = "<< [Echo Reject]"; 
+
+const byte PROGMEM micPin = A0; // the mic/amp is connected to analog pin 0
+//set the input for the mic/amplifier 
+
+// set attributes for the button tones
+const byte PROGMEM buttonVol = 5;
+const byte PROGMEM buttonDur = 80;
+
+const int PROGMEM beepDur = 400;
+const int PROGMEM beepNote = NOTE_C4;
+
+const int PROGMEM shotLimit = 200;
+const int PROGMEM parLimit = 10;
+
+
+//////////////
+// Instantiation
 //////////////
 
 // StopWatch
@@ -139,30 +160,16 @@ LightChrono shotChrono;
 // the I2C bus.
 Adafruit_RGBLCDShield lcd = Adafruit_RGBLCDShield();
 
-const byte micPin = A0; // the mic/amp is connected to analog pin 0
-//set the input for the mic/amplifier 
-
-// set attributes for the button tones
-const byte buttonVol = 5;
-const byte buttonDur = 80;
-const int buttonNote = NOTE_A4;
-
-const int beepDur = 400;
-const int beepNote = NOTE_C4;
-
-const int shotLimit = 200;
-const int parLimit = 10;
-
 //////////////
-// VARIABLES
+// GLOBAL VARIABLES
 //////////////
 unsigned long shotTimes[shotLimit];
 unsigned long parTimes[parLimit];
-unsigned long additivePar = 0;
-
+unsigned long additivePar;
 byte currentShot = 0;
 byte reviewShot = 0;
 byte currentPar = 0;
+boolean isRunning = 0;
 //int sensorReading = 0;      // variable to store the value read from the sensor pin
 //int sample; // reading from the mic input (alternate) for function sampleSound() 
 
@@ -197,25 +204,173 @@ boolean settingEcho = false;
 
 uint8_t oldButtons; //ButtonState
 
+
+//////////////
 //Menu variables
-MenuBackend menu = MenuBackend(menuUseEvent,menuChangeEvent);
+//////////////
+
+MenuBackend timerMenu = MenuBackend(menuUseEvent,menuChangeEvent);
 //initialize menuitems
-MenuItem menuStart   = MenuItem(menu, startName, 1);
-MenuItem menuReview    = MenuItem(menu, reviewName, 1);
-MenuItem menuPar    = MenuItem(menu, parName, 1);
-MenuItem menuParState = MenuItem(menu, parSetName, 2);
-MenuItem menuParTimes = MenuItem(menu, parTimesName, 2);
-MenuItem menuSettings = MenuItem(menu, settingsName, 1);
-MenuItem menuStartDelay = MenuItem(menu, setDelayName, 2);
-MenuItem menuBuzzer = MenuItem(menu, buzzerName, 2);
-MenuItem menuSensitivity = MenuItem(menu, sensitivityName, 2);
-MenuItem menuEcho = MenuItem(menu, echoName, 2);
+MenuItem menuStart   = MenuItem(timerMenu, startName, 1);
+MenuItem menuReview    = MenuItem(timerMenu, reviewName, 1);
+MenuItem menuPar    = MenuItem(timerMenu, parName, 1);
+MenuItem menuParState = MenuItem(timerMenu, parSetName, 2);
+MenuItem menuParTimes = MenuItem(timerMenu, parTimesName, 2);
+MenuItem menuSettings = MenuItem(timerMenu, settingsName, 1);
+MenuItem menuStartDelay = MenuItem(timerMenu, setDelayName, 2);
+MenuItem menuBuzzer = MenuItem(timerMenu, buzzerName, 2);
+MenuItem menuSensitivity = MenuItem(timerMenu, sensitivityName, 2);
+MenuItem menuEcho = MenuItem(timerMenu, echoName, 2);
 
-//MenuItems for 
+
+
 
 //////////////
-// FUNCTIONS                            // Convert these to a library? 
+// FUNCTIONS     
 //////////////
+
+/////////////////////////////////////////////////////////////
+// MENU STATE CHANGES
+/////////////////////////////////////////////////////////////
+
+void menuUseEvent(MenuUseEvent used)
+{
+  //DEBUG: Print used menu item to serial output
+  Serial.print(F("Menu used: "));
+  Serial.println(used.item.getName());
+
+  //menuStart
+  if (used.item.isEqual(menuStart)) //comparison agains a known item
+  {
+    Serial.println(F("Start Timer Function called here"));
+    startTimer();
+  }
+
+  //menuReview
+  if (used.item.isEqual(menuReview)) //comparison agains a known item
+  {
+    Serial.println(F("Review Function called here?"));
+    reviewShots();
+  }
+
+  //menuPar
+  if (used.item.isEqual(menuPar)) //comparison agains a known item
+  {
+    Serial.println(F("Par Function called here?"));
+  }
+  //menuParState
+  if (used.item.isEqual(menuParState)) //comparison agains a known item
+  {
+    setParState();
+    Serial.println(F("ParState Function called here?"));
+  }
+
+  //menuParTimes
+  if (used.item.isEqual(menuParTimes)) //comparison agains a known item
+  {
+    setParTimes();
+    Serial.println(F("ParTimes Function called here?"));
+  }
+
+  //menuSettings
+  if (used.item.isEqual(menuSettings)) //comparison agains a known item
+  {
+    Serial.println(F("Settings Function called here?"));
+  }
+
+  //menuStartDelay
+  if (used.item.isEqual(menuStartDelay)) //comparison agains a known item
+  {
+    Serial.println(F("Start Delay Function called here?"));
+    setDelay();
+  }
+
+  //menuBuzzer
+  if (used.item.isEqual(menuBuzzer)) //comparison agains a known item
+  {
+    Serial.println(F("Buzzer Function called here?"));
+    setBeepVol();
+  }
+
+  //sensitivity
+  if (used.item.isEqual(menuSensitivity)) //comparison agains a known item
+  {
+    Serial.println(F("Sensitivity Function called here?"));
+    setSensitivity();
+  }
+
+  //echoProtect
+  if (used.item.isEqual(menuEcho)) //comparison agains a known item
+  {
+    Serial.println(F("Sensitivity Function called here?"));
+    setEchoProtect();
+  }
+
+}
+
+
+/*
+  This is an important function
+ Here we get a notification whenever the user changes the menu
+ That is, when the menu is navigated
+ */
+void menuChangeEvent(MenuChangeEvent changed)
+{
+  Serial.print(F("Menu change from "));
+  Serial.print(changed.from.getName());
+  Serial.print(F(" to "));
+  Serial.println(changed.to.getName()); //changed.to.getName()
+  lcd.setCursor(0,1);
+  lcd.print(changed.to.getName()); 
+  lcd.print(F("            ")); //12 spaces
+}
+
+//this function builds the menu and connects the correct items together
+void menuSetup(MenuBackend menu)
+{
+  Serial.println(F("Setting up menu..."));
+  //add the file menu to the menu root
+  menu.getRoot().add(menuStart); 
+  //setup the start menu item
+  menuStart.addAfter(menuReview);  //loop up and down between start and review
+  menuReview.addAfter(menuPar); 
+  menuPar.addRight(menuParState);
+  menuParState.addAfter(menuParTimes);
+  menuPar.addAfter(menuSettings);
+  menuSettings.addRight(menuStartDelay);
+  menuStartDelay.addAfter(menuBuzzer);
+  menuBuzzer.addAfter(menuSensitivity);
+  menuSensitivity.addAfter(menuEcho);
+
+  //addLefts - must appear in reverse order!
+  menuParTimes.addLeft(menuPar);
+  menuParState.addLeft(menuPar);
+
+  menuEcho.addLeft(menuSettings);
+  menuSensitivity.addLeft(menuSettings);
+  menuBuzzer.addLeft(menuSettings);
+  menuStartDelay.addLeft(menuSettings);
+
+  //loopbacks
+  menuSettings.addAfter(menuStart);
+  menuParTimes.addAfter(menuParState);
+  menuEcho.addAfter(menuStartDelay);
+  /* INSERT FOR LOOP OF MENU ITEMS FOR STRINGS PRESENT ON SD CARD ?? OR ADD THESE ITEMS IN LOOP? HOW DO WE RETRIEVE REVIEW STRINGS AFTER JUST RECORDED?*/
+
+  menu.moveDown();
+}
+
+//////////////////////////////////////////////////////////
+// Return to the menu screen
+//////////////////////////////////////////////////////////
+
+void returnToMenu(MenuBackend menu){
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print(F("Shot Timer v.3"));
+  lcd.setCursor(0,1);
+  lcd.print(menu.getCurrent().getName());
+}
 
 
 //////////////////////////////////////////////////////////
@@ -282,6 +437,7 @@ void startTimer() {
   lcd.print(F("Last:")); //10 chars
   BEEP();
   //shotTimer.start();
+  isRunning = 1;
   shotChrono.restart();
   //serialPrint(shotTimer.elapsed(), 7);
   serialPrint(shotChrono.elapsed(), 7);
@@ -290,6 +446,7 @@ void startTimer() {
 // Stop the shot timer
 //////////////////////////////////////////////////////////
 void stopTimer(boolean out = 0) {
+  isRunning = 0;
   if (out == 1){
     lcd.setBacklight(RED);
   }
@@ -301,13 +458,13 @@ void stopTimer(boolean out = 0) {
   //serialPrint(shotTimer.elapsed(), 7);
   serialPrint(shotChrono.elapsed(), 7);
   for (int i = 0; i < 5; i++){
-    toneAC(NOTE_C5, 9, 100, false);
+    toneAC(beepNote, 9, 100, false);
     delay(50);  
   }
   if (out == 1){
     lcd.setBacklight(WHITE);
   }
-  menu.moveDown(); //move the menu down to review mode
+  timerMenu.moveDown(); //move the menu down to review mode
   reviewShots(); //move into shot review mode immediately 
 } 
 
@@ -364,7 +521,7 @@ void reviewShots(){
   } 
   else {
     lcd.setBacklight(WHITE);
-    returnToMenu();
+    returnToMenu(timerMenu);
   }
   Serial.println(reviewingShots);
 }
@@ -483,7 +640,7 @@ void setDelay(){
       EEPROM.write(301, delayTime); 
       Serial.println(F("Wrote to EEPROM 301"));
     }   
-    returnToMenu(); 
+    returnToMenu(timerMenu); 
   }
   Serial.println(settingDelay);
 }
@@ -573,7 +730,7 @@ void setBeepVol(){
       EEPROM.write(302, beepVol); 
       Serial.println(F("Wrote to EEPROM 302"));
     }   
-    returnToMenu(); 
+    returnToMenu(timerMenu); 
   }
   Serial.println(settingBeep);
 }
@@ -631,7 +788,7 @@ void setSensitivity(){
       EEPROM.write(303, sensitivity); 
       Serial.println(F("Wrote to EEPROM 303"));
     }   
-    returnToMenu(); 
+    returnToMenu(timerMenu); 
   }
   Serial.println(settingSensitivity);
 }
@@ -692,7 +849,7 @@ void setEchoProtect(){
       EEPROM.write(304, sampleWindow);
       Serial.println(F("Wrote to EEPROM 304")); 
     }
-    returnToMenu(); 
+    returnToMenu(timerMenu); 
   }
   Serial.println(settingEcho);
 }
@@ -760,7 +917,7 @@ void setParState(){
     }
   } 
   else { 
-    returnToMenu(); 
+    returnToMenu(timerMenu); 
   }
   Serial.println(settingParState);
 }
@@ -805,7 +962,7 @@ void setParTimes(){
     lcdPrint(parTimes[currentPar],7);
   }
   else { 
-    returnToMenu(); 
+    returnToMenu(timerMenu); 
   }
   Serial.println(settingParState);
 }
@@ -1091,32 +1248,6 @@ void decreaseTime(){
   lcdPrint(parTimes[currentPar],7);
 }
 
-//////////////////////////////////////////////////////////
-// Close Enough Par Beep (adjustment for echoProtect sample window)
-//////////////////////////////////////////////////////////
-
-
-//boolean parBeep(byte i){
-//  if (shotTimer.elapsed() <= (parTimes[i] + (sampleWindow / 2)) && shotTimer.elapsed() >= (parTimes[i] - sampleWindow / 2)){
-//  if (shotChrono.elapsed() <= (parTimes[i] + (sampleWindow / 2)) && shotTimer.elapsed() >= (parTimes[i] - sampleWindow / 2)){
-//    return true;
-//  } else {
-//    return false;
-//  }
-//}
-
-//////////////////////////////////////////////////////////
-// Return to the menu screen
-//////////////////////////////////////////////////////////
-
-void returnToMenu(){
-  lcd.clear();
-  lcd.setCursor(0,0);
-  lcd.print(F("Shot Timer v.2"));
-  lcd.setCursor(0,1);
-  lcd.print(menu.getCurrent().getName());
-}
-
 /////////////////////////////////////////////////////////////
 // Print time to a serial monitor 
 /////////////////////////////////////////////////////////////
@@ -1155,7 +1286,7 @@ void serialPrint(uint32_t t, byte digits) //formerly called print2digits: http:/
 }
 
 /////////////////////////////////////////////////////////////
-// Helper - 2 digits
+// Serial Helper - 2 digits
 /////////////////////////////////////////////////////////////
 
 void serial2digits(uint32_t x)
@@ -1165,7 +1296,7 @@ void serial2digits(uint32_t x)
 }
 
 /////////////////////////////////////////////////////////////
-// helper - 3 digits
+// Serial Helper - 3 digits
 /////////////////////////////////////////////////////////////
 
 void serial3digits(uint32_t x)
@@ -1176,7 +1307,7 @@ void serial3digits(uint32_t x)
 }
 
 /////////////////////////////////////////////////////////////
-// Helper - 4 digits
+// Serial Helper - 4 digits
 /////////////////////////////////////////////////////////////
 
 void serial4digits(uint32_t x) {
@@ -1231,7 +1362,7 @@ void lcdPrint(uint32_t t, byte digits)
 }
 
 /////////////////////////////////////////////////////////////
-// Helper - 2 digits
+// LCD Helper - 2 digits
 /////////////////////////////////////////////////////////////
 
 void lcd2digits(uint32_t x)
@@ -1241,7 +1372,7 @@ void lcd2digits(uint32_t x)
 }
 
 /////////////////////////////////////////////////////////////
-// helper - 3 digits
+// LCD Helper - 3 digits
 /////////////////////////////////////////////////////////////
 void lcd3digits(uint32_t x)
 {
@@ -1251,7 +1382,7 @@ void lcd3digits(uint32_t x)
 }
 
 /////////////////////////////////////////////////////////////
-// helper - 4 digits
+// LCD Helper - 4 digits
 /////////////////////////////////////////////////////////////
 
 void lcd4digits(uint32_t x) {
@@ -1275,47 +1406,12 @@ void BEEP(){
 /////////////////////////////////////////////////////////////
 
 void buttonTone() {
-  toneAC(buttonNote, buttonVol, buttonDur, true);
+  toneAC(beepNote, buttonVol, buttonDur, true);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 // SETUP FUNCTIONS
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//this function builds the menu and connects the correct items together
-void menuSetup()
-{
-  Serial.println(F("Setting up menu..."));
-  //add the file menu to the menu root
-  menu.getRoot().add(menuStart); 
-  //setup the start menu item
-  menuStart.addAfter(menuReview);  //loop up and down between start and review
-  menuReview.addAfter(menuPar); 
-  menuPar.addRight(menuParState);
-  menuParState.addAfter(menuParTimes);
-  menuPar.addAfter(menuSettings);
-  menuSettings.addRight(menuStartDelay);
-  menuStartDelay.addAfter(menuBuzzer);
-  menuBuzzer.addAfter(menuSensitivity);
-  menuSensitivity.addAfter(menuEcho);
-
-  //addLefts - must appear in reverse order!
-  menuParTimes.addLeft(menuPar);
-  menuParState.addLeft(menuPar);
-
-  menuEcho.addLeft(menuSettings);
-  menuSensitivity.addLeft(menuSettings);
-  menuBuzzer.addLeft(menuSettings);
-  menuStartDelay.addLeft(menuSettings);
-
-  //loopbacks
-  menuSettings.addAfter(menuStart);
-  menuParTimes.addAfter(menuParState);
-  menuEcho.addAfter(menuStartDelay);
-  /* INSERT FOR LOOP OF MENU ITEMS FOR STRINGS PRESENT ON SD CARD ?? OR ADD THESE ITEMS IN LOOP? HOW DO WE RETRIEVE REVIEW STRINGS AFTER JUST RECORDED?*/
-
-  menu.moveDown();
-}
 
 
 void lcdSetup() {
@@ -1372,102 +1468,6 @@ void eepromSetup(){
   sensToThreshold(); //make sure that the Threshold is calculated based on the stored sensitivity setting
 }
 
-/////////////////////////////////////////////////////////////
-// MENU STATE CHANGES
-/////////////////////////////////////////////////////////////
-
-void menuUseEvent(MenuUseEvent used)
-{
-  //DEBUG: Print used menu item to serial output
-  Serial.print(F("Menu used: "));
-  Serial.println(used.item.getName());
-
-  //menuStart
-  if (used.item.isEqual(menuStart)) //comparison agains a known item
-  {
-    Serial.println(F("Start Timer Function called here"));
-    startTimer();
-  }
-
-  //menuReview
-  if (used.item.isEqual(menuReview)) //comparison agains a known item
-  {
-    Serial.println(F("Review Function called here?"));
-    reviewShots();
-  }
-
-  //menuPar
-  if (used.item.isEqual(menuPar)) //comparison agains a known item
-  {
-    Serial.println(F("Par Function called here?"));
-  }
-  //menuParState
-  if (used.item.isEqual(menuParState)) //comparison agains a known item
-  {
-    setParState();
-    Serial.println(F("ParState Function called here?"));
-  }
-
-  //menuParTimes
-  if (used.item.isEqual(menuParTimes)) //comparison agains a known item
-  {
-    setParTimes();
-    Serial.println(F("ParTimes Function called here?"));
-  }
-
-  //menuSettings
-  if (used.item.isEqual(menuSettings)) //comparison agains a known item
-  {
-    Serial.println(F("Settings Function called here?"));
-  }
-
-  //menuStartDelay
-  if (used.item.isEqual(menuStartDelay)) //comparison agains a known item
-  {
-    Serial.println(F("Start Delay Function called here?"));
-    setDelay();
-  }
-
-  //menuBuzzer
-  if (used.item.isEqual(menuBuzzer)) //comparison agains a known item
-  {
-    Serial.println(F("Buzzer Function called here?"));
-    setBeepVol();
-  }
-
-  //sensitivity
-  if (used.item.isEqual(menuSensitivity)) //comparison agains a known item
-  {
-    Serial.println(F("Sensitivity Function called here?"));
-    setSensitivity();
-  }
-
-  //echoProtect
-  if (used.item.isEqual(menuEcho)) //comparison agains a known item
-  {
-    Serial.println(F("Sensitivity Function called here?"));
-    setEchoProtect();
-  }
-
-}
-
-
-/*
-  This is an important function
- Here we get a notification whenever the user changes the menu
- That is, when the menu is navigated
- */
-void menuChangeEvent(MenuChangeEvent changed)
-{
-  Serial.print(F("Menu change from "));
-  Serial.print(changed.from.getName());
-  Serial.print(F(" to "));
-  Serial.println(changed.to.getName()); //changed.to.getName()
-  lcd.setCursor(0,1);
-  lcd.print(changed.to.getName()); 
-  lcd.print(F("            ")); //12 spaces
-}
-
 
 ////////////////////////////////////////////////////////////////////
 ////Checking Free RAM http://playground.arduino.cc/Code/AvailableMemory
@@ -1514,7 +1514,7 @@ void setup(){
 
   lcdSetup(); 
 
-  menuSetup();
+  menuSetup(timerMenu);
 
   freeRAM();
 }
@@ -1533,7 +1533,7 @@ void loop() {
   oldButtons = newButtons;
 
 
-  if(shotTimer.isRunning()){ //listening for shots
+  if(isRunning == 1){ //listening for shots
     listenForShots();
 
     if (parEnabled == 1){
@@ -1544,7 +1544,9 @@ void loop() {
           break; 
         }
         additivePar += parTimes[i]; // add the parTimes together
-        if (shotTimer.elapsed() <= (additivePar + (sampleWindow / 2)) && shotTimer.elapsed() >= (additivePar - sampleWindow / 2)){
+        //if (shotTimer.elapsed() <= (additivePar + (sampleWindow / 2)) && shotTimer.elapsed() >= (additivePar - sampleWindow / 2)){
+        int timeElapsed = shotChrono.elapsed();
+        if (timeElapsed <= (additivePar + (sampleWindow / 2)) && timeElapsed >= (additivePar - sampleWindow / 2)){
           BEEP();  //Beep if the current time matches (within the boundaries of sample window) the parTime
         }
       }
@@ -1553,7 +1555,7 @@ void loop() {
   }
 
   if (buttons){  
-    if (shotTimer.isRunning()){ //while timer is running
+    if (isRunning == 1){ //while timer is running
       if (buttons & BUTTON_SELECT) {
         stopTimer();
       }
@@ -1583,7 +1585,7 @@ void loop() {
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
-        menu.use();
+        timerMenu.use();
         freeRAM();
       }
     }
@@ -1608,7 +1610,7 @@ void loop() {
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
-        menu.use();
+        timerMenu.use();
         freeRAM();
       }      
     }
@@ -1633,7 +1635,7 @@ void loop() {
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
-        menu.use();
+        timerMenu.use();
         freeRAM();
       }      
     }
@@ -1658,7 +1660,7 @@ void loop() {
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
-        menu.use();
+        timerMenu.use();
         freeRAM();
       }      
     }
@@ -1683,7 +1685,7 @@ void loop() {
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
-        menu.use();
+        timerMenu.use();
         freeRAM();
       }      
     }
@@ -1708,7 +1710,7 @@ void loop() {
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
-        menu.use();
+        timerMenu.use();
         freeRAM();
       }      
     }
@@ -1752,7 +1754,7 @@ void loop() {
       }
       if (buttons & BUTTON_LEFT) {
         //buttonTone();
-        menu.use();
+        timerMenu.use();
         freeRAM();
       }
       if (buttons & BUTTON_RIGHT) {
@@ -1768,27 +1770,27 @@ void loop() {
     else  {                     //on the main menu
       if (buttons & BUTTON_UP) {
         //buttonTone();
-        menu.moveUp();
+        timerMenu.moveUp();
         freeRAM();
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
-        menu.moveDown();
+        timerMenu.moveDown();
         freeRAM();
       }
       if (buttons & BUTTON_LEFT) {
         //buttonTone();
-        menu.moveLeft();
+        timerMenu.moveLeft();
         freeRAM();
       }
       if (buttons & BUTTON_RIGHT) {
         //buttonTone();
-        menu.moveRight();
+        timerMenu.moveRight();
         freeRAM();
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
-        menu.use();
+        timerMenu.use();
         freeRAM();
       }
     }
