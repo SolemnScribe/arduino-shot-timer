@@ -1,6 +1,6 @@
 /////////////////////////////////
-// Shot Timer rev. 3a
-// copyright  2013, 2014 - Tim JH L
+// Shot Timer
+// Author: hestenet
 //    This program is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU Lesser General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
@@ -42,23 +42,47 @@
 // INCLUDES
 //////////////
 
+//Tones for buttons and buzzer
+#include "pitches.h" // musical pitches - optional - format: NOTE_C4
+
+//////////////
+// Libraries - Core
+// These are libraries shipped with Arduino, or that can be installed from the "Manage Libraries" interface of the Arduino IDE
+// Sketch -> Include Libraries -> Manage Libraries
+//////////////
+
 //PROGMEM
-#include <avr/pgmspace.h>
+#include <avr/pgmspace.h> 
+
 //EEPROM
 #include <EEPROM.h>
 
-#include "pitches.h" // musical pitches - optional - format: NOTE_C4
-#include <toneAC.h> //Bit-Bang tone library for piezo buzzer http://code.google.com/p/arduino-tone-ac/
-
-//RGB LCD Shield Libraries
+//Wire library lets you manage I2C and 2 pin
 #include <Wire.h>
-#include <Adafruit_MCP23017.h>
+
+//Chrono - LightChrono - chronometer - to replace StopWatch
+#include <LightChrono.h> 
+
+//Adafruit RGB LCD Shield Library
+//#include <Adafruit_MCP23017.h>
 #include <Adafruit_RGBLCDShield.h>
+
+
+//////////////
+// Libraries - Other 
+// These are libraries that cannot be found in the defauilt Arduino library manager - however, they can be added manually.
+// A source url for each library is provided - simply download the library and include in:
+// ~/Documents/Arduino/Libraries
+//////////////
+
+//toneAC
+//Bit-Bang tone library for piezo buzzer http://code.google.com/p/arduino-tone-ac/
+#include <toneAC.h> 
+
+//MenuBackend
+//A menu system for Arduino https://github.com/WiringProject/Wiring/tree/master/framework/libraries/MenuBackend 
 #include <MenuBackend.h> //Documentation: http://wiring.org.co/reference/libraries/MenuBackend/index.html
-/*
-IMPORTANT: to use the menubackend library by Alexander Brevig download it at http://www.arduino.cc/playground/uploads/Profiles/MenuBackend_1-4.zip (OLD)
- (Download the Latest version from WIRING - https://github.com/WiringProject/Wiring/tree/master/framework/libraries/MenuBackend 
- */
+
 
 #include <StopWatch.h> //http://playground.arduino.cc/Code/StopWatchClass
 
@@ -106,7 +130,8 @@ char echoName[] = "<< [Echo Reject]";
 //////////////
 
 // StopWatch
-StopWatch shotTimer;
+//StopWatch shotTimer;
+LightChrono shotChrono;
 
 // The shield uses the I2C SCL and SDA pins. On classic Arduinos
 // this is Analog 4 and 5 so you can't use those for analogRead() anymore
@@ -241,7 +266,7 @@ void listenForShots(){
 
 void startTimer() {
   lcd.setBacklight(GREEN); 
-  shotTimer.reset(); //reset the timer to 0
+  //shotTimer.restart(); //reset the timer to 0
   for (int c = 0; c < currentShot; c++){  // reset the values of the array of shots to 0 NOT <= because currentShot is incremented at the end of the last one recorded
     shotTimes[c] = 0; 
   }
@@ -256,8 +281,10 @@ void startTimer() {
   lcd.setCursor(0,1); 
   lcd.print(F("Last:")); //10 chars
   BEEP();
-  shotTimer.start();
-  serialPrint(shotTimer.elapsed(), 7);
+  //shotTimer.start();
+  shotChrono.restart();
+  //serialPrint(shotTimer.elapsed(), 7);
+  serialPrint(shotChrono.elapsed(), 7);
 }
 //////////////////////////////////////////////////////////
 // Stop the shot timer
@@ -269,9 +296,10 @@ void stopTimer(boolean out = 0) {
   else {
     lcd.setBacklight(WHITE); 
   }
-  shotTimer.stop();
+  //shotTimer.stop();
   Serial.println(F("Timer was stopped at:")); 
-  serialPrint(shotTimer.elapsed(), 7);
+  //serialPrint(shotTimer.elapsed(), 7);
+  serialPrint(shotChrono.elapsed(), 7);
   for (int i = 0; i < 5; i++){
     toneAC(NOTE_C5, 9, 100, false);
     delay(50);  
@@ -288,11 +316,13 @@ void stopTimer(boolean out = 0) {
 //////////////////////////////////////////////////////////
 
 void recordShot(){
-  shotTimes[currentShot] = shotTimer.elapsed();
+  //shotTimes[currentShot] = shotTimer.elapsed();
+  shotTimes[currentShot] = shotChrono.elapsed();
   //Serial.print(F("Shot #")); Serial.print(currentShot + 1); Serial.print(F(" - ")); serialPrint(shotTimes[currentShot], 7); 
   //Serial.println(shotTimer.elapsed());
+  //Serial.println(shotChrono.elapsed(), 7);
   lcd.setCursor(6,1);
-  lcdPrint(shotTimes[currentShot],7); //lcd.print(F(" ")); if(currentShot > 1) {lcdPrint(shotTimes[currentShot]-shotTimes[currentåShot-1],5);}
+  lcdPrint(shotTimes[currentShot],7); //lcd.print(F(" ")); if(currentShot > 1) {lcdPrint(shotTimes[currentShot]-shotTimes[currentÃ¥Shot-1],5);}
   //9 characters             //1 characters                    //6 characters
   currentShot += 1;
   if (currentShot == shotLimit){  // if the current shot == 100 (1 more than the length of the array)
@@ -1068,6 +1098,7 @@ void decreaseTime(){
 
 //boolean parBeep(byte i){
 //  if (shotTimer.elapsed() <= (parTimes[i] + (sampleWindow / 2)) && shotTimer.elapsed() >= (parTimes[i] - sampleWindow / 2)){
+//  if (shotChrono.elapsed() <= (parTimes[i] + (sampleWindow / 2)) && shotTimer.elapsed() >= (parTimes[i] - sampleWindow / 2)){
 //    return true;
 //  } else {
 //    return false;
@@ -1763,6 +1794,7 @@ void loop() {
     }
   }
 }
+
 
 
 
