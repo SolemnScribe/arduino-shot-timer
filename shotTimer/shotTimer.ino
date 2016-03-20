@@ -15,7 +15,7 @@
 //    You should have received a copy of the GNU Lesser General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //    http://www.gnu.org/licenses/lgpl.txt
-// 
+//
 /////////////////////////////////
 
 //////////////////////////////////////////
@@ -28,12 +28,12 @@
 
 /////////////////////////////////////////
 // Current Flaws:
-// listenForShots(); probably could be redesigned to run on a timer interupt. 
-// as a result, the parTimes beep may come as early or late as half the sample window time. 
+// listenForShots(); probably could be redesigned to run on a timer interupt.
+// as a result, the parTimes beep may come as early or late as half the sample window time.
 // However, at most reasonable sampleWindows this will likely be indistinguishable to the user
 //
 // ParTimes are not saved to EEPROM, as their frequent updating is more likely to burn out the chip
-// 
+//
 // I would like to add SD card support to save the strings
 //
 // I would like to add course scoring of some kind, and maybe even shooter profiles, but the arduino Uno is likely not powerful enough for this.
@@ -52,17 +52,21 @@
 // Sketch -> Include Libraries -> Manage Libraries
 //////////////
 
-//PROGMEM
-#include <avr/pgmspace.h> 
+//PROGMEM aka FLASH memory, non-volatile
+#include <avr/pgmspace.h>
+//PGMWrap makes it easier to interact with PROGMEM - declare data types with _p e.g: char_p
+#include <PGMWrap.h>
 
-//EEPROM
+//EEPROM additional non-volatile space 
 #include <EEPROM.h>
+//EEWrap allows you to read/write from EEPROM without special functions and without directly specifying EEPROM address space. 
+#include <EEWrap.h> // the .update() method allows you to only update EEPROM if values have changed. 
 
 //Wire library lets you manage I2C and 2 pin
 #include <Wire.h>
 
 //Chrono - LightChrono - chronometer - to replace StopWatch
-#include <LightChrono.h> 
+#include <LightChrono.h>
 
 //MenuSystem
 #include <MenuSystem.h>
@@ -73,7 +77,7 @@
 
 
 //////////////
-// Libraries - Other 
+// Libraries - Other
 // These are libraries that cannot be found in the defauilt Arduino library manager - however, they can be added manually.
 // A source url for each library is provided - simply download the library and include in:
 // ~/Documents/Arduino/Libraries
@@ -81,10 +85,10 @@
 
 //toneAC
 //Bit-Bang tone library for piezo buzzer http://code.google.com/p/arduino-tone-ac/
-#include <toneAC.h> 
+#include <toneAC.h>
 
 //MenuBackend
-//A menu system for Arduino https://github.com/WiringProject/Wiring/tree/master/framework/libraries/MenuBackend 
+//A menu system for Arduino https://github.com/WiringProject/Wiring/tree/master/framework/libraries/MenuBackend
 //#include <MenuBackend.h> //Documentation: http://wiring.org.co/reference/libraries/MenuBackend/index.html
 
 
@@ -99,7 +103,7 @@
 // DEFINITIONS
 //////////////
 
-// These #defines make it easy to set the backlight color
+// These #defines make it easy to set the backlight color on the Adafruit RGB LCD
 #define RED 0x1
 #define YELLOW 0x3
 #define GREEN 0x2
@@ -109,21 +113,15 @@
 #define WHITE 0x7
 
 //////////////
+// CONSTANTS
+//////////////
+//////////////
 // PROGMEM
 //////////////
 
-//PROGMEM String Conversion - http://electronics4dogs.blogspot.com/2010_12_01_archive.html
-//#define P(str) (strcpy_P(p_buffer, PSTR(str)), p_buffer)
-///char p_buffer[70]; //progmem P(STRINGS) CANNOT BE LONGER THAN THIS CHARACTER COUNT
-// REDUNDANT WITH F() MACRO?
-
-
-
-//////////////
-// CONSTANTS
-//////////////
-
 //Menu Names - format: const char Name[] PROGMEM = ""; <---- this doesn't work with menuBackEnd and I don't know why.
+//To read these - increment over the array - https://github.com/Chris--A/PGMWrap/blob/master/examples/advanced/use_within_classes/use_within_classes.ino 
+//More detailed example of dealing with strings and arrays in PROGMEM http://www.gammon.com.au/progmem
 const char PROGMEM startName[] = "[Start]";
 const char PROGMEM reviewName[] = "[Review]";
 const char PROGMEM parName[] = "Set Par >>";
@@ -133,20 +131,21 @@ const char PROGMEM settingsName[] = "Settings >>";
 const char PROGMEM setDelayName[] = "<< [Set Delay]";
 const char PROGMEM buzzerName[] = "<< [Buzzr Vol]";
 const char PROGMEM sensitivityName[] = "<< [Sensitivity]";
-const char PROGMEM echoName[] = "<< [Echo Reject]"; 
+const char PROGMEM echoName[] = "<< [Echo Reject]";
 
-const byte PROGMEM micPin = A0; // the mic/amp is connected to analog pin 0
-//set the input for the mic/amplifier 
+const uint8_p PROGMEM micPin = A0; // the mic/amp is connected to analog pin 0
+//set the input for the mic/amplifier
 
 // set attributes for the button tones
-const byte PROGMEM buttonVol = 5;
-const byte PROGMEM buttonDur = 80;
+const uint8_p PROGMEM buttonVol = 5;
+const uint8_p PROGMEM buttonDur = 80;
 
-const int PROGMEM beepDur = 400;
-const int PROGMEM beepNote = NOTE_C4;
+const int16_p PROGMEM beepDur = 400;
+const int16_p PROGMEM beepNote = NOTE_C4;
 
-const int PROGMEM shotLimit = 200;
-const int PROGMEM parLimit = 10;
+// set maximum shot count limit and maximum par time limits
+const uint8_p PROGMEM shotLimit = 200;
+const uint8_p PROGMEM parLimit = 10;
 
 
 //////////////
@@ -163,6 +162,21 @@ LightChrono shotChrono;
 // the I2C bus.
 Adafruit_RGBLCDShield lcd = Adafruit_RGBLCDShield();
 
+////////////////////////////////////////
+// EEPROM: Settings to be stored in EEPROM
+////////////////////////////////////////
+// EEPROM HAS 100,000 READ/WRITE CYCLES, conservatively
+// http://tronixstuff.wordpress.com/2011/05/11/discovering-arduinos-internal-eeprom-lifespan/
+uint8_e delayTime = 11;  // Can be 0
+uint8_e beepVol = 10;  // Can be 0
+uint8_e sensitivity = 1;  // Can be 0
+uint8_e sampleWindow = 50; //Cannot be 0  //  ECHO REJECT: Sample window width in mS (50 mS = 20Hz) for function sampleSound()
+// Global variables stoired in EEProm can not be initialized
+// The solution is to declare them uninitialized and then call a setup function based on an if condition...
+// If one of the values is set to 0/null that is not allowed to be set to 0/null than the EEPROM should be updated to the default values. 
+// Or alternately - if all 4 values are set to 0/null than the EEPROM clearly hasn't been set. 
+/////////////////////////////////////////
+
 //////////////
 // GLOBAL VARIABLES
 //////////////
@@ -172,29 +186,30 @@ unsigned long additivePar;
 byte currentShot = 0;
 byte reviewShot = 0;
 byte currentPar = 0;
-boolean isRunning = 0;
-//int sensorReading = 0;      // variable to store the value read from the sensor pin
-//int sample; // reading from the mic input (alternate) for function sampleSound() 
-
-
-////////////////////////////////////////
-// EEPROM: Settings to be stored in EEPROM
-////////////////////////////////////////
-boolean useEEPROM = 1;  // ENABLE THIS TO ENABLE READ WRITE FROM EEPROM, EEPROM HAS 100,000 READ/WRITE CYCLES, conservatively
-// http://tronixstuff.wordpress.com/2011/05/11/discovering-arduinos-internal-eeprom-lifespan/
-byte delayTime = 11;    // EEPROM: 301
-byte beepVol = 10;      // EEPROM: 302
-byte sensitivity = 1;   // EEPROM: 303 
-byte sampleWindow = 50; // EEPROM: 304  //  ECHO REJECT: Sample window width in mS (50 mS = 20Hz) for function sampleSound()
-/////////////////////////////////////////
-
-
-int threshold = 625;
-
+int threshold = 625; //The sensitivity setting is converted into a threshold value
 byte parCursor = 1;
-
-boolean reviewingShots = false;
 boolean parEnabled = false;
+
+
+///////////////
+// Program State Variables
+///////////////
+byte buttonState;
+byte programState; // see if we can refactor our booleans below to use this single programState byte 
+  // 0 - Navigating menus
+  // 1 - Timer is running
+  // 2 - Reviewing shots
+  // 3 - Setting Par State
+  // 4 - Setting Par Times
+  // 5 - ?? Editing Par
+  // 6 - Setting Delay
+  // 7 - Setting Beep
+  // 8 - Setting Sensitivity 
+  // 9 - Setting Echo
+  // +100 = parEnabled
+boolean isRunning = 0;
+boolean reviewingShots = false;
+
 
 boolean settingParState = false;
 boolean settingParTimes = false;
@@ -205,17 +220,17 @@ boolean settingSensitivity = false;
 boolean settingEcho = false;
 
 
-uint8_t oldButtons; //ButtonState
+
 
 
 //////////////
-//Menus and Menu Items            
+//Menus and Menu Items
 //////////////
 
 //MenuBackend timerMenu = MenuBackend(menuUseEvent,menuChangeEvent);
 MenuSystem tm;
 Menu mainMenu("");
-//Menu Items under mainMenu 
+//Menu Items under mainMenu
 //MenuItem menuStart   = MenuItem(timerMenu, startName, 1);
 MenuItem menuStart(startName);
 //MenuItem menuReview    = MenuItem(timerMenu, reviewName, 1);
@@ -242,7 +257,7 @@ MenuItem menuEcho(echoName);
 
 
 //////////////
-// FUNCTIONS     
+// FUNCTIONS
 //////////////
 
 /////////////////////////////////////////////////////////////
@@ -327,17 +342,17 @@ void menuUseEvent(MenuUseEvent used)
 
 /*
   This is an important function
- Here we get a notification whenever the user changes the menu
- That is, when the menu is navigated
- */
+  Here we get a notification whenever the user changes the menu
+  That is, when the menu is navigated
+*/
 void menuChangeEvent(MenuChangeEvent changed)
 {
   Serial.print(F("Menu change from "));
   Serial.print(changed.from.getName());
   Serial.print(F(" to "));
   Serial.println(changed.to.getName()); //changed.to.getName()
-  lcd.setCursor(0,1);
-  lcd.print(changed.to.getName()); 
+  lcd.setCursor(0, 1);
+  lcd.print(changed.to.getName());
   lcd.print(F("            ")); //12 spaces
 }
 
@@ -346,10 +361,10 @@ void menuSetup(MenuBackend menu)
 {
   Serial.println(F("Setting up menu..."));
   //add the file menu to the menu root
-  menu.getRoot().add(menuStart); 
+  menu.getRoot().add(menuStart);
   //setup the start menu item
   menuStart.addAfter(menuReview);  //loop up and down between start and review
-  menuReview.addAfter(menuPar); 
+  menuReview.addAfter(menuPar);
   menuPar.addRight(menuParState);
   menuParState.addAfter(menuParTimes);
   menuPar.addAfter(menuSettings);
@@ -380,11 +395,11 @@ void menuSetup(MenuBackend menu)
 // Return to the menu screen
 //////////////////////////////////////////////////////////
 
-void returnToMenu(MenuBackend menu){
+void returnToMenu(MenuBackend menu) {
   lcd.clear();
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   lcd.print(F("Shot Timer v.3"));
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print(menu.getCurrent().getName());
 }
 
@@ -393,7 +408,7 @@ void returnToMenu(MenuBackend menu){
 // Sample Sound
 //////////////////////////////////////////////////////////
 int sampleSound() {
-  unsigned long startMillis = millis(); // Start of sample window --- the peak to peak reading 
+  unsigned long startMillis = millis(); // Start of sample window --- the peak to peak reading
   // will be the total loudness change across the sample wiindow!
   int peakToPeak = 0; // peak-to-peak level
   int sample = 0;
@@ -418,17 +433,17 @@ int sampleSound() {
   }
   peakToPeak = signalMax - signalMin; // max - min = peak-peak amplitude
   //int millVolts = ((peakToPeak * 3.3) / 1024)*1000 ; // convert to millivolts
-  return(peakToPeak);
+  return (peakToPeak);
 }
 
 //////////////////////////////////////////////////////////
 // Listen for Shots
 //////////////////////////////////////////////////////////
 
-void listenForShots(){
-  if(sampleSound() >= threshold){
+void listenForShots() {
+  if (sampleSound() >= threshold) {
     recordShot();
-  } 
+  }
 }
 
 //////////////////////////////////////////////////////////
@@ -436,20 +451,20 @@ void listenForShots(){
 //////////////////////////////////////////////////////////
 
 void startTimer() {
-  lcd.setBacklight(GREEN); 
+  lcd.setBacklight(GREEN);
   //shotTimer.restart(); //reset the timer to 0
-  for (int c = 0; c < currentShot; c++){  // reset the values of the array of shots to 0 NOT <= because currentShot is incremented at the end of the last one recorded
-    shotTimes[c] = 0; 
+  for (int c = 0; c < currentShot; c++) { // reset the values of the array of shots to 0 NOT <= because currentShot is incremented at the end of the last one recorded
+    shotTimes[c] = 0;
   }
   currentShot = 0; //start with the first shot in the array
-  lcd.setCursor(0,0); 
+  lcd.setCursor(0, 0);
   lcd.print(F("Wait for it...  "));
-  lcd.setCursor(0,1); 
+  lcd.setCursor(0, 1);
   lcd.print(F("                ")); // create a clearline function? Save fewer strings in progmem?
   startDelay();
-  lcd.setCursor(0,0); 
+  lcd.setCursor(0, 0);
   lcd.print(F("      GO!!      "));
-  lcd.setCursor(0,1); 
+  lcd.setCursor(0, 1);
   lcd.print(F("Last:")); //10 chars
   BEEP();
   //shotTimer.start();
@@ -463,77 +478,77 @@ void startTimer() {
 //////////////////////////////////////////////////////////
 void stopTimer(boolean out = 0) {
   isRunning = 0;
-  if (out == 1){
+  if (out == 1) {
     lcd.setBacklight(RED);
   }
   else {
-    lcd.setBacklight(WHITE); 
+    lcd.setBacklight(WHITE);
   }
   //shotTimer.stop();
-  Serial.println(F("Timer was stopped at:")); 
+  Serial.println(F("Timer was stopped at:"));
   //serialPrint(shotTimer.elapsed(), 7);
   serialPrint(shotChrono.elapsed(), 7);
-  for (int i = 0; i < 5; i++){
+  for (int i = 0; i < 5; i++) {
     toneAC(beepNote, 9, 100, false);
-    delay(50);  
+    delay(50);
   }
-  if (out == 1){
+  if (out == 1) {
     lcd.setBacklight(WHITE);
   }
   timerMenu.moveDown(); //move the menu down to review mode
-  reviewShots(); //move into shot review mode immediately 
-} 
+  reviewShots(); //move into shot review mode immediately
+}
 
 //////////////////////////////////////////////////////////
 // record shots to the string array
 //////////////////////////////////////////////////////////
 
-void recordShot(){
+void recordShot() {
   //shotTimes[currentShot] = shotTimer.elapsed();
   shotTimes[currentShot] = shotChrono.elapsed();
-  //Serial.print(F("Shot #")); Serial.print(currentShot + 1); Serial.print(F(" - ")); serialPrint(shotTimes[currentShot], 7); 
+  //Serial.print(F("Shot #")); Serial.print(currentShot + 1); Serial.print(F(" - ")); serialPrint(shotTimes[currentShot], 7);
   //Serial.println(shotTimer.elapsed());
   //Serial.println(shotChrono.elapsed(), 7);
-  lcd.setCursor(6,1);
-  lcdPrint(shotTimes[currentShot],7); //lcd.print(F(" ")); if(currentShot > 1) {lcdPrint(shotTimes[currentShot]-shotTimes[currentShot-1],5);}
+  lcd.setCursor(6, 1);
+  lcdPrint(shotTimes[currentShot], 7); //lcd.print(F(" ")); if(currentShot > 1) {lcdPrint(shotTimes[currentShot]-shotTimes[currentShot-1],5);}
   //9 characters             //1 characters                    //6 characters
   currentShot += 1;
-  if (currentShot == shotLimit){  // if the current shot == 100 (1 more than the length of the array)
+  if (currentShot == shotLimit) { // if the current shot == 100 (1 more than the length of the array)
     stopTimer(1);
   }
-} 
+}
 //////////////////////////////////////////////////////////
 //review shots - initialize the shot review screen
 //////////////////////////////////////////////////////////
 
-void reviewShots(){
+void reviewShots() {
   reviewingShots = !reviewingShots;
-  if (reviewingShots == 1){
+  if (reviewingShots == 1) {
     if (currentShot > 0) {
-      reviewShot = currentShot - 1; 
-    } 
+      reviewShot = currentShot - 1;
+    }
     Serial.print(reviewShot);
-    for (int t = 0; t < currentShot; t++){ 
-      Serial.print(F("Shot #")); 
-      Serial.print(t + 1); 
+    for (int t = 0; t < currentShot; t++) {
+      Serial.print(F("Shot #"));
+      Serial.print(t + 1);
       Serial.print(F(" - "));
-      serialPrint(shotTimes[t],7); 
+      serialPrint(shotTimes[t], 7);
     }
     lcd.setBacklight(VIOLET);
-    lcd.setCursor(0,0);
-    lcd.print(F("Shot #")); 
-    lcd.print(currentShot); 
-    lcd.print(F("                ")); 
-    lcd.setCursor(9,0); 
+    lcd.setCursor(0, 0);
+    lcd.print(F("Shot #"));
+    lcd.print(currentShot);
+    lcd.print(F("                "));
+    lcd.setCursor(9, 0);
     lcd.print(F(" Split "));
-    lcd.setCursor(0,1);
-    lcdPrint(shotTimes[reviewShot],7); 
-    lcd.print(F(" ")); 
-    if(reviewShot > 1) {
-      lcdPrint(shotTimes[reviewShot]-shotTimes[reviewShot-1],5);
+    lcd.setCursor(0, 1);
+    lcdPrint(shotTimes[reviewShot], 7);
+    lcd.print(F(" "));
+    if (reviewShot > 1) {
+      lcdPrint(shotTimes[reviewShot] - shotTimes[reviewShot - 1], 5);
     }
     //9 characters             //1 characters                    //6 characters
-  } 
+  }
   else {
     lcd.setBacklight(WHITE);
     returnToMenu(timerMenu);
@@ -545,27 +560,27 @@ void reviewShots(){
 // review shots - move to the next shot in the string
 //////////////////////////////////////////////////////////
 
-void nextShot(){
-  if(currentShot == 0 || reviewShot == currentShot - 1){
+void nextShot() {
+  if (currentShot == 0 || reviewShot == currentShot - 1) {
     reviewShot = 0;
-  } 
+  }
   else {
     reviewShot++;
   }
-  lcd.setCursor(0,0);
-  lcd.print(F("Shot #")); 
-  lcd.print(reviewShot + 1); 
-  lcd.print(F("                ")); 
-  lcd.setCursor(9,0); 
+  lcd.setCursor(0, 0);
+  lcd.print(F("Shot #"));
+  lcd.print(reviewShot + 1);
+  lcd.print(F("                "));
+  lcd.setCursor(9, 0);
   lcd.print(F(" Split "));
-  lcd.setCursor(0,1); 
-  lcdPrint(shotTimes[reviewShot],7); 
-  lcd.print(F(" ")); 
-  if(reviewShot == 0) {
+  lcd.setCursor(0, 1);
+  lcdPrint(shotTimes[reviewShot], 7);
+  lcd.print(F(" "));
+  if (reviewShot == 0) {
     lcd.print(F("   1st"));
-  } 
+  }
   else {
-    lcdPrint(shotTimes[reviewShot]-shotTimes[reviewShot-1],5);
+    lcdPrint(shotTimes[reviewShot] - shotTimes[reviewShot - 1], 5);
   }
 }
 
@@ -573,31 +588,31 @@ void nextShot(){
 // review shots - move to the previous shot in the string
 //////////////////////////////////////////////////////////
 
-void previousShot(){
-  if (currentShot == 0){
+void previousShot() {
+  if (currentShot == 0) {
     reviewShot = 0;
   }
-  else if(reviewShot == 0){
+  else if (reviewShot == 0) {
     reviewShot = currentShot - 1;
-  } 
+  }
   else {
     reviewShot--;
   }
 
-  lcd.setCursor(0,0);
-  lcd.print(F("Shot #")); 
-  lcd.print(reviewShot + 1); 
-  lcd.print(F("                ")); 
-  lcd.setCursor(9,0); 
+  lcd.setCursor(0, 0);
+  lcd.print(F("Shot #"));
+  lcd.print(reviewShot + 1);
+  lcd.print(F("                "));
+  lcd.setCursor(9, 0);
   lcd.print(F(" Split "));
-  lcd.setCursor(0,1); 
-  lcdPrint(shotTimes[reviewShot],7); 
-  lcd.print(F(" ")); 
-  if(reviewShot == 0) {
+  lcd.setCursor(0, 1);
+  lcdPrint(shotTimes[reviewShot], 7);
+  lcd.print(F(" "));
+  if (reviewShot == 0) {
     lcd.print(F("   1st"));
-  } 
+  }
   else {
-    lcdPrint(shotTimes[reviewShot]-shotTimes[reviewShot-1],5);
+    lcdPrint(shotTimes[reviewShot] - shotTimes[reviewShot - 1], 5);
   }
 }
 
@@ -605,26 +620,26 @@ void previousShot(){
 // Rate of Fire
 //////////////////////////////////////////////////////////
 
-void rateOfFire(boolean includeDraw = true){
+void rateOfFire(boolean includeDraw = true) {
   unsigned int rof;
-  if (!includeDraw){
-    rof = (shotTimes[currentShot-1] - shotTimes[0]) / (currentShot - 1);
-  } 
-  else rof = shotTimes[currentShot-1] / (currentShot - 1);
+  if (!includeDraw) {
+    rof = (shotTimes[currentShot - 1] - shotTimes[0]) / (currentShot - 1);
+  }
+  else rof = shotTimes[currentShot - 1] / (currentShot - 1);
 
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   lcd.print(F("                "));
-  lcd.setCursor(0,0);
-  lcd.print(F("Avg Split:")); 
-  lcd.setCursor(11,0); 
-  lcdPrint(rof,5);
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 0);
+  lcd.print(F("Avg Split:"));
+  lcd.setCursor(11, 0);
+  lcdPrint(rof, 5);
+  lcd.setCursor(0, 1);
   lcd.print(F("                "));
-  lcd.setCursor(0,1);
-  lcd.print(F("Shots/min:")); 
-  lcd.setCursor(11,1); 
-  lcd.print(60000/rof); // will this produce a decimal? Or a truncated int? 
-  //10 characters   //1 characters          //4 characters plus truncated? 
+  lcd.setCursor(0, 1);
+  lcd.print(F("Shots/min:"));
+  lcd.setCursor(11, 1);
+  lcd.print(60000 / rof); // will this produce a decimal? Or a truncated int?
+  //10 characters   //1 characters          //4 characters plus truncated?
 }
 
 
@@ -632,30 +647,30 @@ void rateOfFire(boolean includeDraw = true){
 // setDelay
 /////////////////////////////////////////////////////////////
 
-void setDelay(){
+void setDelay() {
   settingDelay = !settingDelay;
-  if (settingDelay == 1){
+  if (settingDelay == 1) {
     lcd.clear();
-    lcd.setCursor(0,0);
-    lcd.print(F("Start Delay")); 
-    lcd.setCursor(0,1);
+    lcd.setCursor(0, 0);
+    lcd.print(F("Start Delay"));
+    lcd.setCursor(0, 1);
     if (delayTime > 11) {
       lcd.print(F("Random 2-6s"));
-    } 
+    }
     else if (delayTime == 11) {
       lcd.print(F("Random 1-4s"));
-    } 
+    }
     else {
       lcd.print(delayTime);
-    }     
-  } 
+    }
+  }
   else {
     if (useEEPROM == 1 && EEPROM.read(301) != delayTime) {
       Serial.println(F("Read from EEPROM 301"));
-      EEPROM.write(301, delayTime); 
+      EEPROM.write(301, delayTime);
       Serial.println(F("Wrote to EEPROM 301"));
-    }   
-    returnToMenu(timerMenu); 
+    }
+    returnToMenu(timerMenu);
   }
   Serial.println(settingDelay);
 }
@@ -666,23 +681,23 @@ void setDelay(){
 /////////////////////////////////////////////////////////////
 
 void increaseDelay() {
-  if(delayTime == 12){
+  if (delayTime == 12) {
     delayTime = 0;
-  } 
+  }
   else {
     delayTime++;
   }
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   if (delayTime > 11) {
     lcd.print(F("Random 2-6s"));
-  } 
+  }
   else if (delayTime == 11) {
     lcd.print(F("Random 1-4s"));
-  } 
+  }
   else {
     lcd.print(delayTime);
   }
-  lcd.print(F("                "));     
+  lcd.print(F("                "));
 }
 
 /////////////////////////////////////////////////////////////
@@ -690,39 +705,39 @@ void increaseDelay() {
 /////////////////////////////////////////////////////////////
 
 void decreaseDelay() {
-  if(delayTime == 0) {
+  if (delayTime == 0) {
     delayTime = 12;
-  } 
+  }
   else {
     delayTime--;
   }
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   if (delayTime > 11) {
     lcd.print(F("Random 2-6s"));
-  } 
+  }
   else if (delayTime == 11) {
     lcd.print(F("Random 1-4s"));
-  } 
+  }
   else {
     lcd.print(delayTime);
   }
-  lcd.print(F("                "));      
+  lcd.print(F("                "));
 }
 
 /////////////////////////////////////////////////////////////
 // startDelay
 /////////////////////////////////////////////////////////////
 
-void startDelay(){
+void startDelay() {
   if (delayTime > 11) {
-    delay(random(2000,6001)); //from 2 to 6 seconds
-  } 
+    delay(random(2000, 6001)); //from 2 to 6 seconds
+  }
   else if (delayTime == 11) {
-    delay(random(1000,4001)); //from 1 to 4 seconds
-  } 
+    delay(random(1000, 4001)); //from 1 to 4 seconds
+  }
   else {
     delay(delayTime * 1000); //fixed number of seconds
-  }   
+  }
 }
 
 
@@ -730,22 +745,22 @@ void startDelay(){
 // setBeepVol
 /////////////////////////////////////////////////////////////
 
-void setBeepVol(){
+void setBeepVol() {
   settingBeep = !settingBeep;
-  if (settingBeep == 1){
+  if (settingBeep == 1) {
     lcd.clear();
-    lcd.setCursor(0,0);
-    lcd.print(F("Buzzer Volume")); 
-    lcd.setCursor(0,1);
-    lcd2digits(beepVol);   
-  } 
+    lcd.setCursor(0, 0);
+    lcd.print(F("Buzzer Volume"));
+    lcd.setCursor(0, 1);
+    lcd2digits(beepVol);
+  }
   else {
     if (useEEPROM == 1 && EEPROM.read(302) != beepVol) {
       Serial.println(F("Read from EEPROM 302"));
-      EEPROM.write(302, beepVol); 
+      EEPROM.write(302, beepVol);
       Serial.println(F("Wrote to EEPROM 302"));
-    }   
-    returnToMenu(timerMenu); 
+    }
+    returnToMenu(timerMenu);
   }
   Serial.println(settingBeep);
 }
@@ -756,15 +771,15 @@ void setBeepVol(){
 /////////////////////////////////////////////////////////////
 
 void increaseBeepVol() {
-  if(beepVol == 10){
+  if (beepVol == 10) {
     beepVol = 0;
-  } 
+  }
   else {
     beepVol++;
   }
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd2digits(beepVol);
-  lcd.print(F("                "));   
+  lcd.print(F("                "));
 }
 
 /////////////////////////////////////////////////////////////
@@ -772,15 +787,15 @@ void increaseBeepVol() {
 /////////////////////////////////////////////////////////////
 
 void decreaseBeepVol() {
-  if(beepVol == 0){
+  if (beepVol == 0) {
     beepVol = 10;
-  } 
+  }
   else {
     beepVol--;
   }
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd2digits(beepVol);
-  lcd.print(F("                "));   
+  lcd.print(F("                "));
 }
 
 
@@ -788,22 +803,22 @@ void decreaseBeepVol() {
 // setSensitivity
 /////////////////////////////////////////////////////////////
 
-void setSensitivity(){
+void setSensitivity() {
   settingSensitivity = !settingSensitivity;
-  if (settingSensitivity == 1){
+  if (settingSensitivity == 1) {
     lcd.clear();
-    lcd.setCursor(0,0);
-    lcd.print(F("Sensitivity")); 
-    lcd.setCursor(0,1);
-    lcd2digits(sensitivity);   
-  } 
+    lcd.setCursor(0, 0);
+    lcd.print(F("Sensitivity"));
+    lcd.setCursor(0, 1);
+    lcd2digits(sensitivity);
+  }
   else {
     if (useEEPROM == 1 && EEPROM.read(303) != sensitivity) {
       Serial.println(F("Read from EEPROM 303"));
-      EEPROM.write(303, sensitivity); 
+      EEPROM.write(303, sensitivity);
       Serial.println(F("Wrote to EEPROM 303"));
-    }   
-    returnToMenu(timerMenu); 
+    }
+    returnToMenu(timerMenu);
   }
   Serial.println(settingSensitivity);
 }
@@ -814,14 +829,14 @@ void setSensitivity(){
 /////////////////////////////////////////////////////////////
 
 void increaseSensitivity() {
-  if(sensitivity == 20){
+  if (sensitivity == 20) {
     sensitivity = 0;
-  } 
+  }
   else {
     sensitivity++;
   }
   sensToThreshold();
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd2digits(sensitivity);
   lcd.print(F("                "));
 }
@@ -831,14 +846,14 @@ void increaseSensitivity() {
 /////////////////////////////////////////////////////////////
 
 void decreaseSensitivity() {
-  if(sensitivity == 0){
+  if (sensitivity == 0) {
     sensitivity = 20;
-  } 
+  }
   else {
     sensitivity--;
   }
   sensToThreshold();
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd2digits(sensitivity);
   lcd.print(F("                "));
 }
@@ -848,23 +863,23 @@ void decreaseSensitivity() {
 // setEchoProtect - EEPROM
 /////////////////////////////////////////////////////////////
 
-void setEchoProtect(){
+void setEchoProtect() {
   settingEcho = !settingEcho;
-  if (settingEcho == 1){
+  if (settingEcho == 1) {
     lcd.clear();
-    lcd.setCursor(0,0);
-    lcd.print(F("Echo Protect")); 
-    lcd.setCursor(0,1);
-    lcd.print(sampleWindow); 
-    lcd.print(F("ms"));  
-  } 
-  else { 
+    lcd.setCursor(0, 0);
+    lcd.print(F("Echo Protect"));
+    lcd.setCursor(0, 1);
+    lcd.print(sampleWindow);
+    lcd.print(F("ms"));
+  }
+  else {
     if (useEEPROM == 1 && EEPROM.read(304) != sampleWindow) {
       Serial.println(F("Read from EEPROM 304"));
       EEPROM.write(304, sampleWindow);
-      Serial.println(F("Wrote to EEPROM 304")); 
+      Serial.println(F("Wrote to EEPROM 304"));
     }
-    returnToMenu(timerMenu); 
+    returnToMenu(timerMenu);
   }
   Serial.println(settingEcho);
 }
@@ -875,16 +890,16 @@ void setEchoProtect(){
 /////////////////////////////////////////////////////////////
 
 void increaseEchoProtect() {
-  if(sampleWindow == 100){
+  if (sampleWindow == 100) {
     sampleWindow = 10;
-  } 
+  }
   else {
     sampleWindow += 10;
   }
-  lcd.setCursor(0,1);
-  lcd.print(sampleWindow); 
+  lcd.setCursor(0, 1);
+  lcd.print(sampleWindow);
   lcd.print(F("ms"));
-  lcd.print(F("                ")); 
+  lcd.print(F("                "));
 }
 
 /////////////////////////////////////////////////////////////
@@ -892,24 +907,24 @@ void increaseEchoProtect() {
 /////////////////////////////////////////////////////////////
 
 void decreaseEchoProtect() {
-  if(sampleWindow == 0){
+  if (sampleWindow == 10) {
     sampleWindow = 100;
-  } 
+  }
   else {
     sampleWindow -= 10;
   }
-  lcd.setCursor(0,1);
-  lcd.print(sampleWindow); 
+  lcd.setCursor(0, 1);
+  lcd.print(sampleWindow);
   lcd.print(F("ms"));
-  lcd.print(F("                ")); 
+  lcd.print(F("                "));
 }
 
 /////////////////////////////////////////////////////////////
 // convert sensitivity to threshold
 /////////////////////////////////////////////////////////////
 
-void sensToThreshold(){
-  threshold = 650-(25*sensitivity);
+void sensToThreshold() {
+  threshold = 650 - (25 * sensitivity);
 }
 
 
@@ -917,22 +932,22 @@ void sensToThreshold(){
 // setParState
 /////////////////////////////////////////////////////////////
 
-void setParState(){
+void setParState() {
   settingParState = !settingParState;
-  if (settingParState == 1){
+  if (settingParState == 1) {
     lcd.clear();
-    lcd.setCursor(0,0);
-    lcd.print(F("Par Times")); 
-    lcd.setCursor(0,1);
+    lcd.setCursor(0, 0);
+    lcd.print(F("Par Times"));
+    lcd.setCursor(0, 1);
     if (parEnabled == false) {
       lcd.print(F("[DISABLED]"));
     }
     else {
       lcd.print(F("[ENABLED]"));
     }
-  } 
-  else { 
-    returnToMenu(timerMenu); 
+  }
+  else {
+    returnToMenu(timerMenu);
   }
   Serial.println(settingParState);
 }
@@ -944,7 +959,7 @@ void setParState(){
 
 void toggleParState() {
   parEnabled = !parEnabled;
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   if (parEnabled == false) {
     lcd.print(F("[DISABLED]")); //10 characters
   }
@@ -957,27 +972,27 @@ void toggleParState() {
 // setParTimes
 /////////////////////////////////////////////////////////////
 
-void setParTimes(){
+void setParTimes() {
   settingParTimes = !settingParTimes;
-  if (settingParTimes == 1){
+  if (settingParTimes == 1) {
     lcd.clear();
-    lcd.setCursor(0,0);
+    lcd.setCursor(0, 0);
     lcd.print(F("<<"));
-    lcd.setCursor(5,0); 
+    lcd.setCursor(5, 0);
     lcd.print(F("Par"));
-    lcd.setCursor(9,0); 
+    lcd.setCursor(9, 0);
     lcd2digits(currentPar + 1);
-    lcd.setCursor(4,1); 
-    if (currentPar > 0){
-      lcd.print(F("+")); 
-    } 
+    lcd.setCursor(4, 1);
+    if (currentPar > 0) {
+      lcd.print(F("+"));
+    }
     else {
       lcd.print(F(" "));
     }
-    lcdPrint(parTimes[currentPar],7);
+    lcdPrint(parTimes[currentPar], 7);
   }
-  else { 
-    returnToMenu(timerMenu); 
+  else {
+    returnToMenu(timerMenu);
   }
   Serial.println(settingParState);
 }
@@ -988,22 +1003,22 @@ void setParTimes(){
 /////////////////////////////////////////////////////////////
 
 void parUp() {
-  if(currentPar == 0){
+  if (currentPar == 0) {
     currentPar = parLimit - 1;
-  } 
+  }
   else {
     currentPar--;
   }
-  lcd.setCursor(9,0); 
+  lcd.setCursor(9, 0);
   lcd2digits(currentPar + 1);
-  lcd.setCursor(4,1); 
-  if (currentPar > 0){
-    lcd.print(F("+")); 
+  lcd.setCursor(4, 1);
+  if (currentPar > 0) {
+    lcd.print(F("+"));
   }
   else {
     lcd.print(F(" "));
   }
-  lcdPrint(parTimes[currentPar],7);
+  lcdPrint(parTimes[currentPar], 7);
 }
 
 /////////////////////////////////////////////////////////////
@@ -1011,22 +1026,22 @@ void parUp() {
 /////////////////////////////////////////////////////////////
 
 void parDown() {
-  if(currentPar == parLimit - 1){
+  if (currentPar == parLimit - 1) {
     currentPar = 0;
-  } 
+  }
   else {
     currentPar++;
   }
-  lcd.setCursor(9,0); 
+  lcd.setCursor(9, 0);
   lcd2digits(currentPar + 1);
-  lcd.setCursor(4,1); 
-  if (currentPar > 0){
-    lcd.print(F("+")); 
-  } 
+  lcd.setCursor(4, 1);
+  if (currentPar > 0) {
+    lcd.print(F("+"));
+  }
   else {
     lcd.print(F(" "));
   }
-  lcdPrint(parTimes[currentPar],7);
+  lcdPrint(parTimes[currentPar], 7);
 }
 
 
@@ -1034,19 +1049,19 @@ void parDown() {
 // editPar()
 /////////////////////////////////////////////////////////////
 
-void editPar(){
+void editPar() {
   settingParTimes = 0;
   editingPar = !editingPar;
-  if (editingPar == 1){
+  if (editingPar == 1) {
     lcd.setBacklight(GREEN);
-    lcd.setCursor(0,0); 
+    lcd.setCursor(0, 0);
     lcd.print(F("Edit        "));
-    lcd.setCursor(0,1); 
-    lcd.print(F("P")); 
-    lcd2digits(currentPar + 1); 
-    if (currentPar > 0){
+    lcd.setCursor(0, 1);
+    lcd.print(F("P"));
+    lcd2digits(currentPar + 1);
+    if (currentPar > 0) {
       lcd.print(F(" +"));
-    } 
+    }
     else {
       lcd.print(F("  "));
     }
@@ -1055,7 +1070,7 @@ void editPar(){
   }
   else {
     lcd.setBacklight(WHITE);
-    setParTimes(); 
+    setParTimes();
   }
   Serial.println(editingPar);
 }
@@ -1064,11 +1079,11 @@ void editPar(){
 // leftCursor()
 /////////////////////////////////////////////////////////////
 
-void leftCursor(){
-  if (parCursor == 7){
+void leftCursor() {
+  if (parCursor == 7) {
     parCursor = 1;
-  } 
-  else { 
+  }
+  else {
     parCursor++;
   }
   lcdCursor();
@@ -1078,11 +1093,11 @@ void leftCursor(){
 // rightCursor()
 /////////////////////////////////////////////////////////////
 
-void rightCursor(){
-  if (parCursor == 1){
+void rightCursor() {
+  if (parCursor == 1) {
     parCursor = 7;
-  } 
-  else { 
+  }
+  else {
     parCursor--;
   }
   lcdCursor();
@@ -1092,40 +1107,40 @@ void rightCursor(){
 // lcdCursor()
 /////////////////////////////////////////////////////////////
 //switch case for cursor position displayed on screen
-void lcdCursor(){
-  switch(parCursor){
-  case 1: //milliseconds
-    lcd.setCursor(11,0);//icon at 13
-    lcd.print(F("  _"));
-    lcd.setCursor(5,0);//left behind icon at 5
-    lcd.print(F(" "));
-    break;
-  case 2: //ten milliseconds
-    lcd.setCursor(10,0);//icon at 12
-    lcd.print(F("  _  "));
-    break; 
-  case 3: //hundred milliseconds
-    lcd.setCursor(9,0);//icon at 11
-    lcd.print(F("  _  "));
-    break;
-  case 4: //seconds 
-    lcd.setCursor(7,0);//icon at 9
-    lcd.print(F("  _  "));
-    break;
-  case 5: //ten seconds
-    lcd.setCursor(6,0);// icon at 8
-    lcd.print(F("  _  "));
-    break;
-  case 6: //minutes
-    lcd.setCursor(4,0); //icon at 6
-    lcd.print(F("  _  "));
-    break;
-  case 7: //ten minutes
-    lcd.setCursor(5,0); //icon at 5
-    lcd.print(F("_  "));
-    lcd.setCursor(13,0);//left behind icon at 13
-    lcd.print(F(" "));
-    break;
+void lcdCursor() {
+  switch (parCursor) {
+    case 1: //milliseconds
+      lcd.setCursor(11, 0); //icon at 13
+      lcd.print(F("  _"));
+      lcd.setCursor(5, 0); //left behind icon at 5
+      lcd.print(F(" "));
+      break;
+    case 2: //ten milliseconds
+      lcd.setCursor(10, 0); //icon at 12
+      lcd.print(F("  _  "));
+      break;
+    case 3: //hundred milliseconds
+      lcd.setCursor(9, 0); //icon at 11
+      lcd.print(F("  _  "));
+      break;
+    case 4: //seconds
+      lcd.setCursor(7, 0); //icon at 9
+      lcd.print(F("  _  "));
+      break;
+    case 5: //ten seconds
+      lcd.setCursor(6, 0); // icon at 8
+      lcd.print(F("  _  "));
+      break;
+    case 6: //minutes
+      lcd.setCursor(4, 0); //icon at 6
+      lcd.print(F("  _  "));
+      break;
+    case 7: //ten minutes
+      lcd.setCursor(5, 0); //icon at 5
+      lcd.print(F("_  "));
+      lcd.setCursor(13, 0); //left behind icon at 13
+      lcd.print(F(" "));
+      break;
   }
 }
 
@@ -1133,160 +1148,160 @@ void lcdCursor(){
 // increaseTime()
 /////////////////////////////////////////////////////////////
 
-void increaseTime(){
-  switch (parCursor){
-  case 1: // milliseconds
-    if (parTimes[currentPar] == 5999999){
-      break; 
-    } 
-    else {
-      parTimes[currentPar]++;
-    }
-    break; 
-  case 2: // hundreds milliseconds
-    if (parTimes[currentPar] >= 5999990){
-      break; 
-    } 
-    else {
-      parTimes[currentPar] += 10;
-    }
-    break; 
-  case 3: // tens milliseconds
-    if (parTimes[currentPar] >= 5999900){
-      break; 
-    } 
-    else {
-      parTimes[currentPar] += 100;
-    }
-    break;   
-  case 4: // seconds
-    if (parTimes[currentPar] >= 5999000){
-      break; 
-    } 
-    else {
-      parTimes[currentPar] += 1000;
-    }
-    break;
-  case 5: // ten seconds
-    if (parTimes[currentPar] >= 5990000){
-      break; 
-    } 
-    else {
-      parTimes[currentPar] += 10000;
-    }
-    break; 
-  case 6: // minutes
-    if (parTimes[currentPar] >= 5940000){
-      break; 
-    } 
-    else {
-      parTimes[currentPar] += 60000;
-    }
-    break;
-  case 7: // 10 minutes
-    if (parTimes[currentPar] >= 5400000){
-      break; 
-    } 
-    else {
-      parTimes[currentPar] += 600000;
-    }
-    break;   
+void increaseTime() {
+  switch (parCursor) {
+    case 1: // milliseconds
+      if (parTimes[currentPar] == 5999999) {
+        break;
+      }
+      else {
+        parTimes[currentPar]++;
+      }
+      break;
+    case 2: // hundreds milliseconds
+      if (parTimes[currentPar] >= 5999990) {
+        break;
+      }
+      else {
+        parTimes[currentPar] += 10;
+      }
+      break;
+    case 3: // tens milliseconds
+      if (parTimes[currentPar] >= 5999900) {
+        break;
+      }
+      else {
+        parTimes[currentPar] += 100;
+      }
+      break;
+    case 4: // seconds
+      if (parTimes[currentPar] >= 5999000) {
+        break;
+      }
+      else {
+        parTimes[currentPar] += 1000;
+      }
+      break;
+    case 5: // ten seconds
+      if (parTimes[currentPar] >= 5990000) {
+        break;
+      }
+      else {
+        parTimes[currentPar] += 10000;
+      }
+      break;
+    case 6: // minutes
+      if (parTimes[currentPar] >= 5940000) {
+        break;
+      }
+      else {
+        parTimes[currentPar] += 60000;
+      }
+      break;
+    case 7: // 10 minutes
+      if (parTimes[currentPar] >= 5400000) {
+        break;
+      }
+      else {
+        parTimes[currentPar] += 600000;
+      }
+      break;
   }
-  lcd.setCursor(5,1);
-  lcdPrint(parTimes[currentPar],7);
+  lcd.setCursor(5, 1);
+  lcdPrint(parTimes[currentPar], 7);
 }
 
 /////////////////////////////////////////////////////////////
 // decreaseTime()
 /////////////////////////////////////////////////////////////
 
-void decreaseTime(){
-  switch (parCursor){
-  case 1:
-    if (parTimes[currentPar] < 1){
-      break; 
-    } 
-    else {
-      parTimes[currentPar]--;
-    }
-    break; 
-  case 2:
-    if (parTimes[currentPar] < 10){
+void decreaseTime() {
+  switch (parCursor) {
+    case 1:
+      if (parTimes[currentPar] < 1) {
+        break;
+      }
+      else {
+        parTimes[currentPar]--;
+      }
       break;
-    } 
-    else {
-      parTimes[currentPar] -= 10;
-    }
-    break; 
-  case 3:
-    if (parTimes[currentPar] < 100){
+    case 2:
+      if (parTimes[currentPar] < 10) {
+        break;
+      }
+      else {
+        parTimes[currentPar] -= 10;
+      }
       break;
-    } 
-    else {
-      parTimes[currentPar] -= 100;
-    }
-    break;   
-  case 4:
-    if (parTimes[currentPar] < 1000){
+    case 3:
+      if (parTimes[currentPar] < 100) {
+        break;
+      }
+      else {
+        parTimes[currentPar] -= 100;
+      }
       break;
-    } 
-    else {
-      parTimes[currentPar] -= 1000;
-    }
-    break;
-  case 5:
-    if (parTimes[currentPar] < 10000){
+    case 4:
+      if (parTimes[currentPar] < 1000) {
+        break;
+      }
+      else {
+        parTimes[currentPar] -= 1000;
+      }
       break;
-    } 
-    else {
-      parTimes[currentPar] -= 10000;
-    }
-    break; 
-  case 6:
-    if (parTimes[currentPar] < 60000){
+    case 5:
+      if (parTimes[currentPar] < 10000) {
+        break;
+      }
+      else {
+        parTimes[currentPar] -= 10000;
+      }
       break;
-    } 
-    else {
-      parTimes[currentPar] -= 60000;
-    }
-    break;
-  case 7:
-    if (parTimes[currentPar] < 600000){
+    case 6:
+      if (parTimes[currentPar] < 60000) {
+        break;
+      }
+      else {
+        parTimes[currentPar] -= 60000;
+      }
       break;
-    } 
-    else {
-      parTimes[currentPar] -= 600000;
-    }
-    break;   
+    case 7:
+      if (parTimes[currentPar] < 600000) {
+        break;
+      }
+      else {
+        parTimes[currentPar] -= 600000;
+      }
+      break;
   }
-  lcd.setCursor(5,1);
-  lcdPrint(parTimes[currentPar],7);
+  lcd.setCursor(5, 1);
+  lcdPrint(parTimes[currentPar], 7);
 }
 
 /////////////////////////////////////////////////////////////
-// Print time to a serial monitor 
+// Print time to a serial monitor
 /////////////////////////////////////////////////////////////
 
 void serialPrint(uint32_t t, byte digits) //formerly called print2digits: http://arduino.cc/forum/index.php?topic=64024.30
 {
   uint32_t x;
-  if (digits >= 9)  
+  if (digits >= 9)
   {
     // HOURS
-    x = t/ 3600000UL;
+    x = t / 3600000UL;
     t -= x * 3600000UL;
     serial2digits(x);
     Serial.print(':');
   }
 
   // MINUTES
-  x = t/ 60000UL;
+  x = t / 60000UL;
   t -= x * 60000UL;
   serial2digits(x);
   Serial.print(':');
 
   // SECONDS
-  x = t/1000UL;
+  x = t / 1000UL;
   t -= x * 1000UL;
   serial2digits(x);
 
@@ -1334,30 +1349,30 @@ void serial4digits(uint32_t x) {
 
 
 /////////////////////////////////////////////////////////////
-// Print time to an LCD screen 
+// Print time to an LCD screen
 /////////////////////////////////////////////////////////////
 
 void lcdPrint(uint32_t t, byte digits)
 {
   uint32_t x;
-  if (digits >= 8)  
+  if (digits >= 8)
   {
     // HOURS
-    x = t/ 3600000UL;
+    x = t / 3600000UL;
     t -= x * 3600000UL;
     lcd2digits(x);
     lcd.print(':');
   }
   if (digits >= 6) {
     // MINUTES
-    x = t/ 60000UL;
+    x = t / 60000UL;
     t -= x * 60000UL;
     lcd2digits(x);
     lcd.print(':');
   }
-  if (digits >= 4){
+  if (digits >= 4) {
     // SECONDS
-    x = t/1000UL;
+    x = t / 1000UL;
     t -= x * 1000UL;
     lcd2digits(x);
   }
@@ -1367,11 +1382,11 @@ void lcdPrint(uint32_t t, byte digits)
     lcd.print('.');
     //x = (t+5)/10L;  // rounded hundredths?
     lcd3digits(t);
-  } 
-  else if (digits >= 2){
+  }
+  else if (digits >= 2) {
     // ROUNDED HUNDREDTHS
     lcd.print('.');
-    x = (t+5)/10L;  // rounded hundredths?
+    x = (t + 5) / 10L; // rounded hundredths?
     lcd2digits(t);
   }
 }
@@ -1412,7 +1427,7 @@ void lcd4digits(uint32_t x) {
 // BEEP
 /////////////////////////////////////////////////////////////
 
-void BEEP(){
+void BEEP() {
   toneAC(beepNote, beepVol, beepDur, true);
 }
 
@@ -1435,29 +1450,21 @@ void lcdSetup() {
   // this library has been optimized a bit and we're proud of it :)
   int time = millis();
   lcd.print(F("Shot Timer v.3"));
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print(F("[Start]         "));
   time = millis() - time;
-  Serial.print(F("Took ")); 
-  Serial.print(time); 
+  Serial.print(F("Took "));
+  Serial.print(time);
   Serial.println(F(" ms"));
-  lcd.setBacklight(WHITE);  
+  lcd.setBacklight(WHITE);
 
 }
-
-/*
-  This is an important function
- Here all use events are handled
- 
- This is where you define a behaviour for a menu item
- */
-
 
 /////////////////////////////////////////////////////////////
 // eepromSetup
 /////////////////////////////////////////////////////////////
 
-void eepromSetup(){
+void eepromSetup() {
   byte dt = EEPROM.read(301);    // EEPROM: 301
   Serial.println(F("Read from EEPROM 301"));
   byte bv = EEPROM.read(302);      // EEPROM: 302
@@ -1468,7 +1475,7 @@ void eepromSetup(){
   Serial.println(F("Read from EEPROM 304"));
 
   //use settings values from EEPROM only if the read values are valid
-  if (dt <= 12){ 
+  if (dt <= 12) {
     delayTime = dt;
   }
   if (bv <= 10) {
@@ -1491,17 +1498,17 @@ void eepromSetup(){
 
 // this function will print the free RAM in bytes to the serial port
 void freeRAM () {
-  extern int __heap_start, *__brkval; 
-  int v; 
+  extern int __heap_start, *__brkval;
+  int v;
   v = (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
-  Serial.print(v); 
-  Serial.print(F("\n")); 
+  Serial.print(v);
+  Serial.print(F("\n"));
 }
 
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//SETUP AND LOOP 
+//SETUP AND LOOP
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -1509,8 +1516,8 @@ void freeRAM () {
 // SETUP
 //////////////
 
-void setup(){
-  /////////////  
+void setup() {
+  /////////////
   // Debugging:
   /////////////
 
@@ -1522,12 +1529,12 @@ void setup(){
 
   randomSeed(analogRead(1));
 
-  if (useEEPROM == 1){
+  if (useEEPROM == 1) {
     Serial.print(F("Retrieveing prefs from EEPROM..."));
     eepromSetup();
   }
 
-  lcdSetup(); 
+  lcdSetup();
 
   menuSetup(timerMenu);
 
@@ -1544,24 +1551,24 @@ void loop() {
 
   //only accept newly changed button states
   uint8_t newButtons = lcd.readButtons();
-  uint8_t buttons = newButtons & ~oldButtons;
-  oldButtons = newButtons;
+  uint8_t buttons = newButtons & ~buttonState;
+  buttonState = newButtons;
 
 
-  if(isRunning == 1){ //listening for shots
+  if (isRunning == 1) { //listening for shots
     listenForShots();
 
-    if (parEnabled == 1){
+    if (parEnabled == 1) {
       additivePar = 0;
 
-      for (byte i = 0; i < parLimit; i++){
-        if (parTimes[i] == 0){ 
-          break; 
+      for (byte i = 0; i < parLimit; i++) {
+        if (parTimes[i] == 0) {
+          break;
         }
         additivePar += parTimes[i]; // add the parTimes together
         //if (shotTimer.elapsed() <= (additivePar + (sampleWindow / 2)) && shotTimer.elapsed() >= (additivePar - sampleWindow / 2)){
         int timeElapsed = shotChrono.elapsed();
-        if (timeElapsed <= (additivePar + (sampleWindow / 2)) && timeElapsed >= (additivePar - sampleWindow / 2)){
+        if (timeElapsed <= (additivePar + (sampleWindow / 2)) && timeElapsed >= (additivePar - sampleWindow / 2)) {
           BEEP();  //Beep if the current time matches (within the boundaries of sample window) the parTime
         }
       }
@@ -1569,14 +1576,14 @@ void loop() {
     }
   }
 
-  if (buttons){  
-    if (isRunning == 1){ //while timer is running
+  if (buttons) {
+    if (isRunning == 1) { //while timer is running
       if (buttons & BUTTON_SELECT) {
         stopTimer();
       }
     }
 
-    else  if (reviewingShots == 1){ //reviewing shots    /replace booleans for menus with a switch state based on a string or even based on a byte with values predefined? 
+    else  if (reviewingShots == 1) { //reviewing shots    /replace booleans for menus with a switch state based on a string or even based on a byte with values predefined?
       if (buttons & BUTTON_UP) {
         //buttonTone();
         previousShot();
@@ -1604,7 +1611,7 @@ void loop() {
         freeRAM();
       }
     }
-    else if (settingDelay == 1){ //setting delay
+    else if (settingDelay == 1) { //setting delay
       if (buttons & BUTTON_UP) {
         //buttonTone();
         increaseDelay();
@@ -1627,9 +1634,9 @@ void loop() {
         //buttonTone();
         timerMenu.use();
         freeRAM();
-      }      
+      }
     }
-    else if (settingBeep == 1){ //setting beep volume  
+    else if (settingBeep == 1) { //setting beep volume
       if (buttons & BUTTON_UP) {
         //buttonTone();
         increaseBeepVol();
@@ -1652,9 +1659,9 @@ void loop() {
         //buttonTone();
         timerMenu.use();
         freeRAM();
-      }      
+      }
     }
-    else if (settingSensitivity == 1){ //setting sensitivity
+    else if (settingSensitivity == 1) { //setting sensitivity
       if (buttons & BUTTON_UP) {
         //buttonTone();
         increaseSensitivity();
@@ -1677,9 +1684,9 @@ void loop() {
         //buttonTone();
         timerMenu.use();
         freeRAM();
-      }      
+      }
     }
-    else if (settingEcho == 1){ //setting echo protection
+    else if (settingEcho == 1) { //setting echo protection
       if (buttons & BUTTON_UP) {
         //buttonTone();
         increaseEchoProtect();
@@ -1702,9 +1709,9 @@ void loop() {
         //buttonTone();
         timerMenu.use();
         freeRAM();
-      }      
+      }
     }
-    else if (settingParState == 1){ //settingParState
+    else if (settingParState == 1) { //settingParState
       if (buttons & BUTTON_UP) {
         //buttonTone();
         toggleParState();
@@ -1727,9 +1734,9 @@ void loop() {
         //buttonTone();
         timerMenu.use();
         freeRAM();
-      }      
+      }
     }
-    else if (editingPar == 1){ //editing a Par time
+    else if (editingPar == 1) { //editing a Par time
       if (buttons & BUTTON_UP) {
         //buttonTone();
         increaseTime();
@@ -1754,9 +1761,9 @@ void loop() {
         //buttonTone();
         editPar();
         freeRAM();
-      }      
+      }
     }
-    else if (settingParTimes == 1){ //settingParState
+    else if (settingParTimes == 1) { //settingParState
       if (buttons & BUTTON_UP) {
         //buttonTone();
         parUp();
@@ -1780,7 +1787,7 @@ void loop() {
         //buttonTone();
         editPar();
         freeRAM();
-      }      
+      }
     }
     else  {                     //on the main menu
       if (buttons & BUTTON_UP) {
