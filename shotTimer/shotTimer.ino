@@ -64,6 +64,9 @@
 //Chrono - LightChrono - chronometer - to replace StopWatch
 #include <LightChrono.h> 
 
+//MenuSystem
+#include <MenuSystem.h>
+
 //Adafruit RGB LCD Shield Library
 //#include <Adafruit_MCP23017.h>
 #include <Adafruit_RGBLCDShield.h>
@@ -82,7 +85,7 @@
 
 //MenuBackend
 //A menu system for Arduino https://github.com/WiringProject/Wiring/tree/master/framework/libraries/MenuBackend 
-#include <MenuBackend.h> //Documentation: http://wiring.org.co/reference/libraries/MenuBackend/index.html
+//#include <MenuBackend.h> //Documentation: http://wiring.org.co/reference/libraries/MenuBackend/index.html
 
 
 //#include <StopWatch.h> //http://playground.arduino.cc/Code/StopWatchClass
@@ -175,7 +178,7 @@ boolean isRunning = 0;
 
 
 ////////////////////////////////////////
-// EEPROM: Settings to be stored in EEPROM?
+// EEPROM: Settings to be stored in EEPROM
 ////////////////////////////////////////
 boolean useEEPROM = 1;  // ENABLE THIS TO ENABLE READ WRITE FROM EEPROM, EEPROM HAS 100,000 READ/WRITE CYCLES, conservatively
 // http://tronixstuff.wordpress.com/2011/05/11/discovering-arduinos-internal-eeprom-lifespan/
@@ -206,23 +209,36 @@ uint8_t oldButtons; //ButtonState
 
 
 //////////////
-//Menu variables
+//Menus and Menu Items            
 //////////////
 
-MenuBackend timerMenu = MenuBackend(menuUseEvent,menuChangeEvent);
-//initialize menuitems
-MenuItem menuStart   = MenuItem(timerMenu, startName, 1);
-MenuItem menuReview    = MenuItem(timerMenu, reviewName, 1);
-MenuItem menuPar    = MenuItem(timerMenu, parName, 1);
-MenuItem menuParState = MenuItem(timerMenu, parSetName, 2);
-MenuItem menuParTimes = MenuItem(timerMenu, parTimesName, 2);
-MenuItem menuSettings = MenuItem(timerMenu, settingsName, 1);
-MenuItem menuStartDelay = MenuItem(timerMenu, setDelayName, 2);
-MenuItem menuBuzzer = MenuItem(timerMenu, buzzerName, 2);
-MenuItem menuSensitivity = MenuItem(timerMenu, sensitivityName, 2);
-MenuItem menuEcho = MenuItem(timerMenu, echoName, 2);
+//MenuBackend timerMenu = MenuBackend(menuUseEvent,menuChangeEvent);
+MenuSystem tm;
+Menu mainMenu("");
+//Menu Items under mainMenu 
+//MenuItem menuStart   = MenuItem(timerMenu, startName, 1);
+MenuItem menuStart(startName);
+//MenuItem menuReview    = MenuItem(timerMenu, reviewName, 1);
+MenuItem menuReview(reviewName);
 
+//MenuItem menuPar    = MenuItem(timerMenu, parName, 1);
+Menu parMenu(parName);
 
+//MenuItem menuParState = MenuItem(timerMenu, parSetName, 2);
+MenuItem menuParState(parSetName);
+//MenuItem menuParTimes = MenuItem(timerMenu, parTimesName, 2);
+MenuItem menuParTimes(parTimesName);
+
+//MenuItem menuSettings = MenuItem(timerMenu, settingsName, 1);
+Menu settingsMenu(settingsName);
+//MenuItem menuStartDelay = MenuItem(timerMenu, setDelayName, 2);
+MenuItem menuStartDelay(setDelayName);
+//MenuItem menuBuzzer = MenuItem(timerMenu, buzzerName, 2);
+MenuItem menuBuzzer(buzzerName);
+//MenuItem menuSensitivity = MenuItem(timerMenu, sensitivityName, 2);
+MenuItem menuSensitivity(sensitivityName);
+//MenuItem menuEcho = MenuItem(timerMenu, echoName, 2);
+MenuItem menuEcho(echoName);
 
 
 //////////////
@@ -479,14 +495,13 @@ void recordShot(){
   //Serial.println(shotTimer.elapsed());
   //Serial.println(shotChrono.elapsed(), 7);
   lcd.setCursor(6,1);
-  lcdPrint(shotTimes[currentShot],7); //lcd.print(F(" ")); if(currentShot > 1) {lcdPrint(shotTimes[currentShot]-shotTimes[currentÃ¥Shot-1],5);}
+  lcdPrint(shotTimes[currentShot],7); //lcd.print(F(" ")); if(currentShot > 1) {lcdPrint(shotTimes[currentShot]-shotTimes[currentShot-1],5);}
   //9 characters             //1 characters                    //6 characters
   currentShot += 1;
   if (currentShot == shotLimit){  // if the current shot == 100 (1 more than the length of the array)
     stopTimer(1);
   }
-}
-
+} 
 //////////////////////////////////////////////////////////
 //review shots - initialize the shot review screen
 //////////////////////////////////////////////////////////
@@ -1419,7 +1434,7 @@ void lcdSetup() {
   // Print a message to the LCD. We track how long it takes since
   // this library has been optimized a bit and we're proud of it :)
   int time = millis();
-  lcd.print(F("Shot Timer v.2"));
+  lcd.print(F("Shot Timer v.3"));
   lcd.setCursor(0,1);
   lcd.print(F("[Start]         "));
   time = millis() - time;
@@ -1508,7 +1523,7 @@ void setup(){
   randomSeed(analogRead(1));
 
   if (useEEPROM == 1){
-    Serial.print(F("Retrieveing prefs from EEPROM.."));
+    Serial.print(F("Retrieveing prefs from EEPROM..."));
     eepromSetup();
   }
 
