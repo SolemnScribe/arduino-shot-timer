@@ -345,7 +345,7 @@ void listenForShots() {
 //////////////////////////////////////////////////////////
 // Consider changing these to be 'on_menu_event()' functions - such that they can have a local variable for whether the menu item is active, rather than using a global. 
 // Also - transition menus and re-render menu screens in the stop condition. 
-void startTimer() {
+void on_menuStart_selected(MenuItem* p_menu_item) {
   isRunning = 1;
   lcd.setBacklight(GREEN);
   //shotTimer.restart(); //reset the timer to 0
@@ -392,7 +392,7 @@ void stopTimer(boolean out = 0) {
     lcd.setBacklight(WHITE);
   }
   tm.next(); //move the menu down to review mode
-  reviewShots(); //move into shot review mode immediately
+  tm.select(); //move into shot review mode immediately
 }
 
 //////////////////////////////////////////////////////////
@@ -417,7 +417,7 @@ void recordShot() {
 //review shots - initialize the shot review screen
 //////////////////////////////////////////////////////////
 
-void reviewShots() {
+void on_menuReview_selected(MenuItem* p_menu_item) {
   reviewingShots = !reviewingShots;
   if (reviewingShots == 1) {
     if (currentShot > 0) {
@@ -540,10 +540,10 @@ void rateOfFire(boolean includeDraw = true) {
 
 
 /////////////////////////////////////////////////////////////
-// setDelay
+// on_menuStartDelay_selected
 /////////////////////////////////////////////////////////////
 
-void setDelay() {
+void on_menuStartDelay_selected(MenuItem* p_menu_item) {
   settingDelay = !settingDelay;
   if (settingDelay == 1) {
     lcd.clear();
@@ -634,10 +634,10 @@ void startDelay() {
 
 
 /////////////////////////////////////////////////////////////
-// setBeepVol
+// on_menuBuzzer_selected
 /////////////////////////////////////////////////////////////
 
-void setBeepVol() {
+void on_menuBuzzer_selected(MenuItem* p_menu_item) {
   settingBeep = !settingBeep;
   if (settingBeep == 1) {
     lcd.clear();
@@ -688,10 +688,10 @@ void decreaseBeepVol() {
 
 
 /////////////////////////////////////////////////////////////
-// setSensitivity
+// on_menuSensitivity_selected
 /////////////////////////////////////////////////////////////
 
-void setSensitivity() {
+void on_menuSensitivity_selected(MenuItem* p_menu_item) {
   settingSensitivity = !settingSensitivity;
   if (settingSensitivity == 1) {
     lcd.clear();
@@ -744,10 +744,10 @@ void decreaseSensitivity() {
 
 
 /////////////////////////////////////////////////////////////
-// setEchoProtect - EEPROM
+// on_menuEcho_selected - EEPROM
 /////////////////////////////////////////////////////////////
 
-void setEchoProtect() {
+void on_menuEcho_selected(MenuItem* p_menu_item) {
   settingEcho = !settingEcho;
   if (settingEcho == 1) {
     lcd.clear();
@@ -809,10 +809,10 @@ void sensToThreshold() {
 
 
 /////////////////////////////////////////////////////////////
-// setParState
+// on_menuParState_selected
 /////////////////////////////////////////////////////////////
 
-void setParState() {
+void on_menuParState_selected(MenuItem* p_menu_item) {
   settingParState = !settingParState;
   if (settingParState == 1) {
     lcd.clear();
@@ -849,10 +849,10 @@ void toggleParState() {
 }
 
 /////////////////////////////////////////////////////////////
-// setParTimes
+// on_menuParTimes_selected
 /////////////////////////////////////////////////////////////
 
-void setParTimes() {
+void on_menuParTimes_selected(MenuItem* p_menu_item) {
   settingParTimes = !settingParTimes;
   if (settingParTimes == 1) {
     lcd.clear();
@@ -950,7 +950,7 @@ void editPar() {
   }
   else {
     lcd.setBacklight(WHITE);
-    setParTimes();
+    tm.select();
   }
   Serial.println(editingPar);
 }
@@ -1361,17 +1361,17 @@ void buttonTone() {
 
 void menuSetup()
 {
-  mainMenu.add_item(&menuStart, &startTimer);
-  mainMenu.add_item(&menuReview, &reviewShots);
+  mainMenu.add_item(&menuStart, &on_menuStart_selected);
+  mainMenu.add_item(&menuReview, &on_menuReview_selected);
   mainMenu.add_menu(&parMenu);
-    parMenu.add_item(&menuParState, &setParState);
-    parMenu.add_item(&menuParTimes, &setParTimes);
+    parMenu.add_item(&menuParState, &on_menuParState_selected);
+    parMenu.add_item(&menuParTimes, &on_menuParTimes_selected);
   mainMenu.add_menu(&settingsMenu);
-    settingsMenu.add_item(&menuStartDelay, &setDelay);
-    settingsMenu.add_item(&menuBuzzer, &setBeepVol);
-    settingsMenu.add_item(&menuSensitivity, &setSensitivity);
-    settingsMenu.add_item(&menuEcho, &setEchoProtect);
-  tm.set_root_menu(mainMenu); 
+    settingsMenu.add_item(&menuStartDelay, &on_menuStartDelay_selected);
+    settingsMenu.add_item(&menuBuzzer, &on_menuBuzzer_selected);
+    settingsMenu.add_item(&menuSensitivity, &on_menuSensitivity_selected);
+    settingsMenu.add_item(&menuEcho, &on_menuEcho_selected);
+  tm.set_root_menu(&mainMenu); 
 }
 
 //////////////////////////////////////////////////////////
