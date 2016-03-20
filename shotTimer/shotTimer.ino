@@ -143,10 +143,6 @@ const uint8_p PROGMEM buttonDur = 80;
 const int16_p PROGMEM beepDur = 400;
 const int16_p PROGMEM beepNote = NOTE_C4;
 
-// set maximum shot count limit and maximum par time limits
-const uint8_p PROGMEM shotLimit = 200;
-const uint8_p PROGMEM parLimit = 10;
-
 
 //////////////
 // Instantiation
@@ -167,21 +163,25 @@ Adafruit_RGBLCDShield lcd = Adafruit_RGBLCDShield();
 ////////////////////////////////////////
 // EEPROM HAS 100,000 READ/WRITE CYCLES, conservatively
 // http://tronixstuff.wordpress.com/2011/05/11/discovering-arduinos-internal-eeprom-lifespan/
-uint8_e delayTime = 11;  // Can be 0
-uint8_e beepVol = 10;  // Can be 0
-uint8_e sensitivity = 1;  // Can be 0
-uint8_e sampleWindow = 50; //Cannot be 0  //  ECHO REJECT: Sample window width in mS (50 mS = 20Hz) for function sampleSound()
+uint8_e delaySetting;  // Can be 0
+uint8_e beepSetting;  // Can be 0
+uint8_e sensSetting;  // Can be 0
+uint8_e sampleSetting; //Cannot be 0  //  ECHO REJECT: Sample window width in mS (50 mS = 20Hz) for function sampleSound()
 // Global variables stoired in EEProm can not be initialized
 // The solution is to declare them uninitialized and then call a setup function based on an if condition...
 // If one of the values is set to 0/null that is not allowed to be set to 0/null than the EEPROM should be updated to the default values. 
 // Or alternately - if all 4 values are set to 0/null than the EEPROM clearly hasn't been set. 
+byte delayTime = 11;
+byte beepVol = 10;
+byte sensitivity = 1;
+byte sampleWindow = 50;
 /////////////////////////////////////////
 
 //////////////
 // GLOBAL VARIABLES
 //////////////
-unsigned long shotTimes[shotLimit];
-unsigned long parTimes[parLimit];
+unsigned long shotTimes[200];
+unsigned long parTimes[10];
 unsigned long additivePar;
 byte currentShot = 0;
 byte reviewShot = 0;
@@ -218,9 +218,6 @@ boolean settingDelay = false;
 boolean settingBeep = false;
 boolean settingSensitivity = false;
 boolean settingEcho = false;
-
-
-
 
 
 //////////////
@@ -1457,7 +1454,6 @@ void lcdSetup() {
   Serial.print(time);
   Serial.println(F(" ms"));
   lcd.setBacklight(WHITE);
-
 }
 
 /////////////////////////////////////////////////////////////
@@ -1465,27 +1461,40 @@ void lcdSetup() {
 /////////////////////////////////////////////////////////////
 
 void eepromSetup() {
-  byte dt = EEPROM.read(301);    // EEPROM: 301
-  Serial.println(F("Read from EEPROM 301"));
-  byte bv = EEPROM.read(302);      // EEPROM: 302
-  Serial.println(F("Read from EEPROM 302"));
-  byte st = EEPROM.read(303);  // EEPROM: 303
-  Serial.println(F("Read from  EEPROM 303"));
-  byte sw = EEPROM.read(304);  // EEPROM: 304
-  Serial.println(F("Read from EEPROM 304"));
+  Serial.print(F("Checking if EEPROM needs to be set..."));
+// Note - EEWrap automatically uses an .update() on EEPROM writes, to avoid wearing out the EEPROM if the value being set is the same as the existing value. 
 
-  //use settings values from EEPROM only if the read values are valid
-  if (dt <= 12) {
-    delayTime = dt;
+  // Use settings values from EEPROM only if the if non-null values have been set
+  // Because 0 is not a valid value for Sample Window - this is the only variable we need to check for a null value to know that EEPROM is not yet set. When it is not set, set it with default values 
+  if (sampleWindow == 0) {
+    Serial.println(F("Setting EEPROM"));
+    delaySetting = delayTime;
+      Serial.println(F("Set delaySetting to "));
+      Serial.print(delayTime);
+    beepVol = 10;
+      Serial.println(F("Set beepSetting to "));
+      Serial.print(beepVol);
+    sensitivity = 1;
+      Serial.println(F("Set sensSetting to "));
+      Serial.print(sensitivity);
+    sampleWindow = 50;
+      Serial.println(F("Set sampleSetting to "));
+      Serial.print(sampleWindow);
   }
-  if (bv <= 10) {
-    beepVol = bv;
-  }
-  if (st <= 20) {
-    sensitivity = st;
-  }
-  if (sw <= 100) {
-    sampleWindow = sw;
+  else {
+    Serial.println(F("Reading settings from EEPROM)"));
+    delayTime = delaySetting;
+      Serial.println(F("Set delayTime to "));
+      Serial.print(delayTime);
+    beepBol = beepSetting;
+      Serial.println(F("Set beepVol to "));
+      Serial.print(beepVol);
+    sensitivity = sensSetting;
+      Serial.println(F("Set sensitivity to "));
+      Serial.print(sensitivity);
+    sampleWindow = sampleSetting;
+      Serial.println(F("Set sampleWindow to "));
+      Serial.print(sampleWindow);
   }
   sensToThreshold(); //make sure that the Threshold is calculated based on the stored sensitivity setting
 }
@@ -1529,10 +1538,7 @@ void setup() {
 
   randomSeed(analogRead(1));
 
-  if (useEEPROM == 1) {
-    Serial.print(F("Retrieveing prefs from EEPROM..."));
-    eepromSetup();
-  }
+  eepromSetup();
 
   lcdSetup();
 
