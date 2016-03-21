@@ -86,7 +86,9 @@
     //////////////////////
     #define DEBUG_PRINT(str)              \
       Serial.print(str);
-    #define DEBUG_PRINTLN(str)            \
+    #define DEBUG_PRINTLN(str, bl)        \
+      if (bl > 0)                         \
+      {                                   \
       serialPrint_p(millisStr);           \
       Serial.print(millis());             \
       serialPrint_p(bytesStr);            \
@@ -98,11 +100,32 @@
       serialPrint_p(colStr);              \
       Serial.print(__LINE__);             \
       serialPrint_p(spaceStr);            \
+      }                                   \
       Serial.println(str);
+    #define DEBUG_PRINT_P(str)            \
+      serialPrint_p(str);
+    #define DEBUG_PRINTLN_P(str, bl)      \
+      if (bl > 0)                         \
+      {                                   \
+      serialPrint_p(millisStr);           \
+      Serial.print(millis());             \
+      serialPrint_p(bytesStr);            \
+      Serial.print(FREE_RAM());           \
+      serialPrint_p(colStr);              \
+      Serial.print(__PRETTY_FUNCTION__);  \
+      serialPrint_p(spaceStr);            \
+      Serial.print(__FILE__);             \
+      serialPrint_p(colStr);              \
+      Serial.print(__LINE__);             \
+      serialPrint_p(spaceStr);            \
+      }                                   \
+      serialPrintln_p(str);
     
   #else
-    #define DEBUG_PRINT(str)
-    #define DEBUG_PRINTLN(str)
+    #define DEBUG_PRINT(str, bl)
+    #define DEBUG_PRINTLN(str, bl)
+    #define DEBUG_PRINT_P(str, bl)
+    #define DEBUG_PRINTLN_P(str, bl)
   #endif
 
 #endif

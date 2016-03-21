@@ -52,7 +52,7 @@ void convertTime(uint32_t te, byte digits, char* str) //formerly called print2di
     tx /= 10;
   }
   te %= hdiv; // or if modulo does not work: tx -= x * hdiv;
-  DEBUG_PRINT(str);
+  DEBUG_PRINTLN(str, 0);
 
   // MINUTES
   tx = te / mdiv;
@@ -63,7 +63,7 @@ void convertTime(uint32_t te, byte digits, char* str) //formerly called print2di
     tx /= 10;
   }
   te %= mdiv;
-  DEBUG_PRINT(str);
+  DEBUG_PRINTLN(str, 0);
 
   // SECONDS
   tx = te / sdiv;
@@ -74,7 +74,7 @@ void convertTime(uint32_t te, byte digits, char* str) //formerly called print2di
     tx /= 10;
   }
   te %= sdiv;
-  DEBUG_PRINT(str);
+  DEBUG_PRINTLN(str, 0);
 
   //MILLISECONDS
   tx = te;
@@ -84,5 +84,5 @@ void convertTime(uint32_t te, byte digits, char* str) //formerly called print2di
     str[i] = '0' + digit;
     tx /= 10;
   }
-  DEBUG_PRINTLN(str);
+  DEBUG_PRINTLN(str, 0);
 }

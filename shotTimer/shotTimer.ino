@@ -375,7 +375,7 @@ void stopTimer(boolean out = 0) {
     lcd.setBacklight(WHITE);
   }
   //shotTimer.stop();
-  DEBUG_PRINTLN(F("Timer was stopped at:"));
+  DEBUG_PRINTLN(F("Timer was stopped at:"), 0);
   convertTime(shotChrono.elapsed(), 7, NULL); // for DEBUG
   for (int i = 0; i < 5; i++) {
     toneAC(beepNote, 9, 100, false);
@@ -444,7 +444,7 @@ void on_menuReview_selected(MenuItem* p_menu_item) {
     lcd.setBacklight(WHITE);
     renderMenu();
   }
-  DEBUG_PRINTLN(reviewingShots);
+  DEBUG_PRINTLN(reviewingShots, 0);
 }
 
 //////////////////////////////////////////////////////////
@@ -559,7 +559,7 @@ void on_menuStartDelay_selected(MenuItem* p_menu_item) {
     delaySetting = delayTime;
     renderMenu();
   }
-  DEBUG_PRINTLN(settingDelay);
+  DEBUG_PRINTLN(settingDelay, 0);
 }
 
 
@@ -645,7 +645,7 @@ void on_menuBuzzer_selected(MenuItem* p_menu_item) {
     beepSetting = beepVol;
     renderMenu();
   }
-  DEBUG_PRINTLN(settingBeep);
+  DEBUG_PRINTLN(settingBeep, 0);
 }
 
 
@@ -699,7 +699,7 @@ void on_menuSensitivity_selected(MenuItem* p_menu_item) {
     sensSetting = sensitivity;
     renderMenu();
   }
-  DEBUG_PRINTLN(settingSensitivity);
+  DEBUG_PRINTLN(settingSensitivity, 0);
 }
 
 
@@ -756,7 +756,7 @@ void on_menuEcho_selected(MenuItem* p_menu_item) {
     sampleSetting = sampleWindow;
     renderMenu();
   }
-  DEBUG_PRINTLN(settingEcho);
+  DEBUG_PRINTLN(settingEcho, 0);
 }
 
 
@@ -824,7 +824,7 @@ void on_menuParState_selected(MenuItem* p_menu_item) {
   else {
     renderMenu();
   }
-  DEBUG_PRINTLN(settingParState);
+  DEBUG_PRINTLN(settingParState, 0);
 }
 
 
@@ -869,7 +869,7 @@ void on_menuParTimes_selected(MenuItem* p_menu_item) {
   else {
     renderMenu();
   }
-  DEBUG_PRINTLN(settingParState);
+  DEBUG_PRINTLN(settingParState, 0);
 }
 
 
@@ -947,7 +947,7 @@ void editPar() {
     lcd.setBacklight(WHITE);
     tm.select();
   }
-  DEBUG_PRINTLN(editingPar);
+  DEBUG_PRINTLN(editingPar, 0);
 }
 
 /////////////////////////////////////////////////////////////
@@ -1275,33 +1275,33 @@ void eepromSetup() {
   // Use settings values from EEPROM only if the if non-null values have been set
   // Because 0 is not a valid value for Sample Window - this is the only variable we need to check for a null value to know that EEPROM is not yet set. When it is not set, set it with default values 
   if (sampleWindow == 0) {
-    DEBUG_PRINTLN(F("Setting EEPROM"));
+    DEBUG_PRINTLN(F("Setting EEPROM"), 0);
     delaySetting = delayTime;
-      DEBUG_PRINTLN(F("Set delaySetting to "));
+      DEBUG_PRINTLN(F("Set delaySetting to "), 0);
       DEBUG_PRINT(delayTime);
     beepVol = 10;
-      DEBUG_PRINTLN(F("Set beepSetting to "));
+      DEBUG_PRINTLN(F("Set beepSetting to "), 0);
       DEBUG_PRINT(beepVol);
     sensitivity = 1;
-      DEBUG_PRINTLN(F("Set sensSetting to "));
+      DEBUG_PRINTLN(F("Set sensSetting to "), 0);
       DEBUG_PRINT(sensitivity);
     sampleWindow = 50;
-      DEBUG_PRINTLN(F("Set sampleSetting to "));
+      DEBUG_PRINTLN(F("Set sampleSetting to "), 0);
       DEBUG_PRINT(sampleWindow);
   }
   else {
-    DEBUG_PRINTLN(F("Reading settings from EEPROM)"));
+    DEBUG_PRINTLN(F("Reading settings from EEPROM)"), 0);
     delayTime = delaySetting;
-      DEBUG_PRINTLN(F("Set delayTime to "));
+      DEBUG_PRINTLN(F("Set delayTime to "), 0);
       DEBUG_PRINT(delayTime);
     beepVol = beepSetting;
-      DEBUG_PRINTLN(F("Set beepVol to "));
+      DEBUG_PRINTLN(F("Set beepVol to "), 0);
       DEBUG_PRINT(beepVol);
     sensitivity = sensSetting;
-      DEBUG_PRINTLN(F("Set sensitivity to "));
+      DEBUG_PRINTLN(F("Set sensitivity to "), 0);
       DEBUG_PRINT(sensitivity);
     sampleWindow = sampleSetting;
-      DEBUG_PRINTLN(F("Set sampleWindow to "));
+      DEBUG_PRINTLN(F("Set sampleWindow to "), 0);
       DEBUG_PRINT(sampleWindow);
   }
   sensToThreshold(); //make sure that the Threshold is calculated based on the stored sensitivity setting
@@ -1366,7 +1366,7 @@ void setup() {
 
   lcdSetup();
 
-  DEBUG_PRINTLN();
+  DEBUG_PRINTLN(NULL, 0);
 }
 
 //////////////
@@ -1419,233 +1419,233 @@ void loop() {
       if (buttons & BUTTON_UP) {
         //buttonTone();
         previousShot();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
         nextShot();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_LEFT) {
         ////buttonTone();
         reviewShot--;
         nextShot();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_RIGHT) {
         ////buttonTone();
         rateOfFire();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
     }
     else if (settingDelay == 1) { //setting delay
       if (buttons & BUTTON_UP) {
         //buttonTone();
         increaseDelay();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
         decreaseDelay();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_LEFT) {
         ////buttonTone();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_RIGHT) {
         ////buttonTone();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
     }
     else if (settingBeep == 1) { //setting beep volume
       if (buttons & BUTTON_UP) {
         //buttonTone();
         increaseBeepVol();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
         decreaseBeepVol();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_LEFT) {
         ////buttonTone();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_RIGHT) {
         ////buttonTone();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
     }
     else if (settingSensitivity == 1) { //setting sensitivity
       if (buttons & BUTTON_UP) {
         //buttonTone();
         increaseSensitivity();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
         decreaseSensitivity();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_LEFT) {
         ////buttonTone();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_RIGHT) {
         ////buttonTone();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
     }
     else if (settingEcho == 1) { //setting echo protection
       if (buttons & BUTTON_UP) {
         //buttonTone();
         increaseEchoProtect();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
         decreaseEchoProtect();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_LEFT) {
         ////buttonTone();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_RIGHT) {
         ////buttonTone();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
     }
     else if (settingParState == 1) { //settingParState
       if (buttons & BUTTON_UP) {
         //buttonTone();
         toggleParState();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
         toggleParState();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_LEFT) {
         ////buttonTone();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_RIGHT) {
         ////buttonTone();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
     }
     else if (editingPar == 1) { //editing a Par time
       if (buttons & BUTTON_UP) {
         //buttonTone();
         increaseTime();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
         decreaseTime();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_LEFT) {
         //buttonTone();
         leftCursor();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_RIGHT) {
         //buttonTone();
         rightCursor();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         editPar();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
     }
     else if (settingParTimes == 1) { //settingParState
       if (buttons & BUTTON_UP) {
         //buttonTone();
         parUp();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
         parDown();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_LEFT) {
         //buttonTone();
         tm.select();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_RIGHT) {
         ////buttonTone();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         editPar();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
     }
     else  {                     //on the main menu
       if (buttons & BUTTON_UP) {
         //buttonTone();
         tm.prev();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
         tm.next();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_LEFT) {
         //buttonTone();
         tm.back();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_RIGHT) {
         //buttonTone();
         tm.select(); //?? How will we make sure to render selected Menus off of the main area, while not allowing it to make MenuItems 'go'? Maybe checking whether the current item is a Menu or MenuItem? Is that possible? 
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        DEBUG_PRINTLN();
+        DEBUG_PRINTLN(NULL, 0);
       }
     }
   }
