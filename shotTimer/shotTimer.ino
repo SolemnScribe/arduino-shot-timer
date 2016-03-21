@@ -2,6 +2,9 @@
 // Shot Timer
 // Author: hestenet
 // Canonical Repository: https://github.com/hestenet/arduino-shot-timer
+// 
+//   This file is part of ShotTimer. 
+//
 //    This program is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU Lesser General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
@@ -39,12 +42,25 @@
 // I would like to add course scoring of some kind, and maybe even shooter profiles, but the arduino Uno is likely not powerful enough for this.
 //////////////////////////////////////////
 
-//////////////
+//////////////////////////////////////////
 // INCLUDES
+//////////////////////////////////////////
+
+//////////////
+//DEBUG
+//////////////
+#define DEBUG  //comment this out to disable debug information and remove all DEBUG messages at compile time
+#include "DebugMacros.h"
+
+
+//////////////
+// Libraries - Mine
 //////////////
 
 //Tones for buttons and buzzer
-#include "pitches.h" // musical pitches - optional - format: NOTE_C4 | This include makes no difference to program or dynamic memory
+#include "Pitches.h" // musical pitches - optional - format: NOTE_C4 | This include makes no difference to program or dynamic memory
+//Convert time in ms elapsed to hh:mm:ss.mss
+#include "LegibleTime.h"
 
 //////////////
 // Libraries - Core
@@ -72,7 +88,6 @@
 #include <MenuSystem.h>
 
 //Adafruit RGB LCD Shield Library
-//#include <Adafruit_MCP23017.h>
 #include <Adafruit_RGBLCDShield.h>
 
 
@@ -84,20 +99,14 @@
 //////////////
 
 //toneAC
-//Bit-Bang tone library for piezo buzzer http://code.google.com/p/arduino-tone-ac/
+//Bit-Bang tone library for piezo buzzer https://bitbucket.org/teckel12/arduino-toneac/wiki/Home#!difference-between-toneac-and-toneac2
 #include <toneAC.h>
-
-//MenuBackend
-//A menu system for Arduino https://github.com/WiringProject/Wiring/tree/master/framework/libraries/MenuBackend
-//#include <MenuBackend.h> //Documentation: http://wiring.org.co/reference/libraries/MenuBackend/index.html
-
-
-//#include <StopWatch.h> //http://playground.arduino.cc/Code/StopWatchClass
 
 //////////////
 // Other code samples used:
 // Adafruit sound level sampling: http://learn.adafruit.com/adafruit-microphone-amplifier-breakout/measuring-sound-levels
 //////////////
+
 
 //////////////
 // DEFINITIONS
@@ -122,6 +131,7 @@
 //Menu Names - format: const char Name[] PROGMEM = ""; <---- this doesn't work with menuBackEnd and I don't know why.
 //To read these - increment over the array - https://github.com/Chris--A/PGMWrap/blob/master/examples/advanced/use_within_classes/use_within_classes.ino 
 //More detailed example of dealing with strings and arrays in PROGMEM http://www.gammon.com.au/progmem
+const char PROGMEM mainName[] = "Shot Timer v.3";
 const char PROGMEM startName[] = "[Start]";
 const char PROGMEM reviewName[] = "[Review]";
 const char PROGMEM parName[] = "Set Par >>";
@@ -224,32 +234,17 @@ boolean settingEcho = false;
 //Menus and Menu Items
 //////////////
 
-//MenuBackend timerMenu = MenuBackend(menuUseEvent,menuChangeEvent);
 MenuSystem tm;
-Menu mainMenu("");
-//Menu Items under mainMenu
-  //MenuItem menuStart   = MenuItem(timerMenu, startName, 1);
+Menu mainMenu(mainName);
   MenuItem menuStart(startName);
-  //MenuItem menuReview    = MenuItem(timerMenu, reviewName, 1);
   MenuItem menuReview(reviewName);
-
-  //MenuItem menuPar    = MenuItem(timerMenu, parName, 1);
   Menu parMenu(parName);
-
-    //MenuItem menuParState = MenuItem(timerMenu, parSetName, 2);
     MenuItem menuParState(parSetName);
-    //MenuItem menuParTimes = MenuItem(timerMenu, parTimesName, 2);
     MenuItem menuParTimes(parTimesName);
-
-  //MenuItem menuSettings = MenuItem(timerMenu, settingsName, 1);
   Menu settingsMenu(settingsName);
-    //MenuItem menuStartDelay = MenuItem(timerMenu, setDelayName, 2);
     MenuItem menuStartDelay(setDelayName);
-    //MenuItem menuBuzzer = MenuItem(timerMenu, buzzerName, 2);
     MenuItem menuBuzzer(buzzerName);
-    //MenuItem menuSensitivity = MenuItem(timerMenu, sensitivityName, 2);
     MenuItem menuSensitivity(sensitivityName);
-    //MenuItem menuEcho = MenuItem(timerMenu, echoName, 2);
     MenuItem menuEcho(echoName);
 
 
@@ -283,19 +278,18 @@ Menu mainMenu("");
 
 
 //////////////////////////////////////////////////////////
-// Return to the menu screen
+// Render the current menu screen
 //////////////////////////////////////////////////////////
 
-void returnToMenu() {
-  Menu const* menu;
-  menu = tm.get_current_menu();
+void renderMenu() {
+  Menu const* menu = tm.get_current_menu();
   //const char* menu1_name = menu->get_selected()->get_name();
   //const char* menu_name = menu->get_selected()->get_name();
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print(F("Shot Timer v.3"));
+  lcdPrint_p(menu->get_name()); // lcd.print(F("Shot Timer v.3"));
   lcd.setCursor(0, 1);
-  lcdPrint_p(menu->get_name()); //get_current_menu_name() is apparently no longer a thing! Argh.
+  lcdPrint_p(menu->get_selected()->get_name()); //get_current_menu_name() is apparently no longer a thing! Argh.
 }
 
 //////////////////////////////////////////////////////////
@@ -366,8 +360,8 @@ void on_menuStart_selected(MenuItem* p_menu_item) {
   //shotTimer.start();
   
   shotChrono.restart();
-  //serialPrint(shotTimer.elapsed(), 7);
-  serialPrint(shotChrono.elapsed(), 7);
+  //serialPrintln(shotTimer.elapsed(), 7);
+  convertTime(shotChrono.elapsed(), 7, NULL); // for DEBUG
 }
 //////////////////////////////////////////////////////////
 // Stop the shot timer
@@ -381,9 +375,8 @@ void stopTimer(boolean out = 0) {
     lcd.setBacklight(WHITE);
   }
   //shotTimer.stop();
-  Serial.println(F("Timer was stopped at:"));
-  //serialPrint(shotTimer.elapsed(), 7);
-  serialPrint(shotChrono.elapsed(), 7);
+  DEBUG_PRINTLN(F("Timer was stopped at:"));
+  convertTime(shotChrono.elapsed(), 7, NULL); // for DEBUG
   for (int i = 0; i < 5; i++) {
     toneAC(beepNote, 9, 100, false);
     delay(50);
@@ -402,9 +395,10 @@ void stopTimer(boolean out = 0) {
 void recordShot() {
   //shotTimes[currentShot] = shotTimer.elapsed();
   shotTimes[currentShot] = shotChrono.elapsed();
-  //Serial.print(F("Shot #")); Serial.print(currentShot + 1); Serial.print(F(" - ")); serialPrint(shotTimes[currentShot], 7);
-  //Serial.println(shotTimer.elapsed());
-  //Serial.println(shotChrono.elapsed(), 7);
+  DEBUG_PRINT(F("Shot #")); DEBUG_PRINT(currentShot + 1); DEBUG_PRINT(F(" - "));// serialPrintln(shotTimes[currentShot], 7);
+  DEBUG_PRINT(F("\n"));
+  //serialPrintln(shotTimer.elapsed());
+  //serialPrintln(shotChrono.elapsed(), 7);
   lcd.setCursor(6, 1);
   lcdPrintTime(shotTimes[currentShot], 7); //lcd.print(F(" ")); if(currentShot > 1) {lcdPrintTime(shotTimes[currentShot]-shotTimes[currentShot-1],5);}
   //9 characters             //1 characters                    //6 characters
@@ -423,12 +417,13 @@ void on_menuReview_selected(MenuItem* p_menu_item) {
     if (currentShot > 0) {
       reviewShot = currentShot - 1;
     }
-    Serial.print(reviewShot);
+    DEBUG_PRINT(reviewShot);
+    //DEBUG FOR LOOP - PRINT ALL SHOT TIMES IN THE STRING TO SERIAL 
     for (int t = 0; t < currentShot; t++) {
-      Serial.print(F("Shot #"));
-      Serial.print(t + 1);
-      Serial.print(F(" - "));
-      serialPrint(shotTimes[t], 7);
+      DEBUG_PRINT(F("Shot #"));
+      DEBUG_PRINT(t + 1);
+      DEBUG_PRINT(F(" - "));
+      convertTime(shotTimes[t], 7, NULL); // for DEBUG
     }
     lcd.setBacklight(VIOLET);
     lcd.setCursor(0, 0);
@@ -447,9 +442,9 @@ void on_menuReview_selected(MenuItem* p_menu_item) {
   }
   else {
     lcd.setBacklight(WHITE);
-    returnToMenu();
+    renderMenu();
   }
-  Serial.println(reviewingShots);
+  DEBUG_PRINTLN(reviewingShots);
 }
 
 //////////////////////////////////////////////////////////
@@ -562,9 +557,9 @@ void on_menuStartDelay_selected(MenuItem* p_menu_item) {
   }
   else {
     delaySetting = delayTime;
-    returnToMenu();
+    renderMenu();
   }
-  Serial.println(settingDelay);
+  DEBUG_PRINTLN(settingDelay);
 }
 
 
@@ -648,9 +643,9 @@ void on_menuBuzzer_selected(MenuItem* p_menu_item) {
   }
   else {
     beepSetting = beepVol;
-    returnToMenu();
+    renderMenu();
   }
-  Serial.println(settingBeep);
+  DEBUG_PRINTLN(settingBeep);
 }
 
 
@@ -702,9 +697,9 @@ void on_menuSensitivity_selected(MenuItem* p_menu_item) {
   }
   else {
     sensSetting = sensitivity;
-    returnToMenu();
+    renderMenu();
   }
-  Serial.println(settingSensitivity);
+  DEBUG_PRINTLN(settingSensitivity);
 }
 
 
@@ -759,9 +754,9 @@ void on_menuEcho_selected(MenuItem* p_menu_item) {
   }
   else {
     sampleSetting = sampleWindow;
-    returnToMenu();
+    renderMenu();
   }
-  Serial.println(settingEcho);
+  DEBUG_PRINTLN(settingEcho);
 }
 
 
@@ -827,9 +822,9 @@ void on_menuParState_selected(MenuItem* p_menu_item) {
     }
   }
   else {
-    returnToMenu();
+    renderMenu();
   }
-  Serial.println(settingParState);
+  DEBUG_PRINTLN(settingParState);
 }
 
 
@@ -872,9 +867,9 @@ void on_menuParTimes_selected(MenuItem* p_menu_item) {
     lcdPrintTime(parTimes[currentPar], 7);
   }
   else {
-    returnToMenu();
+    renderMenu();
   }
-  Serial.println(settingParState);
+  DEBUG_PRINTLN(settingParState);
 }
 
 
@@ -952,7 +947,7 @@ void editPar() {
     lcd.setBacklight(WHITE);
     tm.select();
   }
-  Serial.println(editingPar);
+  DEBUG_PRINTLN(editingPar);
 }
 
 /////////////////////////////////////////////////////////////
@@ -1159,93 +1154,6 @@ void decreaseTime() {
 }
 
 /////////////////////////////////////////////////////////////
-// Print time to a serial monitor
-/////////////////////////////////////////////////////////////
-
-void serialPrint(uint32_t t, byte digits) //formerly called print2digits: http://arduino.cc/forum/index.php?topic=64024.30
-{
-  uint32_t x;
-  if (digits >= 9)
-  {
-    // HOURS
-    x = t / 3600000UL;
-    t -= x * 3600000UL;
-    serial2digits(x);
-    Serial.print(':');
-  }
-
-  // MINUTES
-  x = t / 60000UL;
-  t -= x * 60000UL;
-  serial2digits(x);
-  Serial.print(':');
-
-  // SECONDS
-  x = t / 1000UL;
-  t -= x * 1000UL;
-  serial2digits(x);
-
-  if (digits >= 9 || digits >= 7)
-  {
-    // HUNDREDS/THOUSANDTHS
-    Serial.print('.');
-    //x = (t+5)/10L;  // rounded hundredths?
-    serial3digits(t);
-  }
-  Serial.print(F("\n"));
-}
-
-/////////////////////////////////////////////////////////////
-// Serial Helper - 2 digits
-/////////////////////////////////////////////////////////////
-
-void serial2digits(uint32_t x)
-{
-  if (x < 10) Serial.print(F("0"));
-  Serial.print(x);
-}
-
-/////////////////////////////////////////////////////////////
-// Serial Helper - 3 digits
-/////////////////////////////////////////////////////////////
-
-void serial3digits(uint32_t x)
-{
-  if (x < 100) Serial.print(F("0"));
-  if (x < 10) Serial.print(F("0"));
-  Serial.print(x);
-}
-
-/////////////////////////////////////////////////////////////
-// Serial Helper - 4 digits
-/////////////////////////////////////////////////////////////
-
-void serial4digits(uint32_t x) {
-  if (x < 1000) Serial.print(F("0"));
-  if (x < 100) Serial.print(F("0"));
-  if (x < 10) Serial.print(F("0"));
-  Serial.print(x);
-}
-
-/////////////////////////////////////////////////////////////
-// PROGMEM Helper - Print a string from PROGMEM to an LCD Screen
-/////////////////////////////////////////////////////////////
-
-void serialPrintln_p(const char * str)
-{
-  char c;
-  if (!str)
-  {
-    return;
-  }
-  while (c = pgm_read_byte(str++))
-  {
-    Serial.print(c);
-  }
-  Serial.print(F("\n"));
-}
-
-/////////////////////////////////////////////////////////////
 // PROGMEM Helper - Print a string from PROGMEM to an LCD Screen
 /////////////////////////////////////////////////////////////
 
@@ -1355,6 +1263,51 @@ void buttonTone() {
 // SETUP FUNCTIONS
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/////////////////////////////////////////////////////////////
+// eepromSetup
+// Note - EEWrap automatically uses an .update() on EEPROM writes, to avoid wearing out the EEPROM if the value being set is the same as the existing value. 
+/////////////////////////////////////////////////////////////
+
+void eepromSetup() {
+  DEBUG_PRINT(F("Checking if EEPROM needs to be set..."));
+
+
+  // Use settings values from EEPROM only if the if non-null values have been set
+  // Because 0 is not a valid value for Sample Window - this is the only variable we need to check for a null value to know that EEPROM is not yet set. When it is not set, set it with default values 
+  if (sampleWindow == 0) {
+    DEBUG_PRINTLN(F("Setting EEPROM"));
+    delaySetting = delayTime;
+      DEBUG_PRINTLN(F("Set delaySetting to "));
+      DEBUG_PRINT(delayTime);
+    beepVol = 10;
+      DEBUG_PRINTLN(F("Set beepSetting to "));
+      DEBUG_PRINT(beepVol);
+    sensitivity = 1;
+      DEBUG_PRINTLN(F("Set sensSetting to "));
+      DEBUG_PRINT(sensitivity);
+    sampleWindow = 50;
+      DEBUG_PRINTLN(F("Set sampleSetting to "));
+      DEBUG_PRINT(sampleWindow);
+  }
+  else {
+    DEBUG_PRINTLN(F("Reading settings from EEPROM)"));
+    delayTime = delaySetting;
+      DEBUG_PRINTLN(F("Set delayTime to "));
+      DEBUG_PRINT(delayTime);
+    beepVol = beepSetting;
+      DEBUG_PRINTLN(F("Set beepVol to "));
+      DEBUG_PRINT(beepVol);
+    sensitivity = sensSetting;
+      DEBUG_PRINTLN(F("Set sensitivity to "));
+      DEBUG_PRINT(sensitivity);
+    sampleWindow = sampleSetting;
+      DEBUG_PRINTLN(F("Set sampleWindow to "));
+      DEBUG_PRINT(sampleWindow);
+  }
+  sensToThreshold(); //make sure that the Threshold is calculated based on the stored sensitivity setting
+}
+
+
 //////////////////////////////////////////////////////////
 // Menu Setup
 //////////////////////////////////////////////////////////
@@ -1380,78 +1333,9 @@ void menuSetup()
 
 void lcdSetup() {
   lcd.begin(16, 2);
-  // Print a message to the LCD. We track how long it takes since
-  // this library has been optimized a bit and we're proud of it :)
-  int time = millis();
-  lcd.print(F("Shot Timer v.3"));
-  lcd.setCursor(0, 1);
-  lcd.print(F("[Start]         "));
-  time = millis() - time;
-  Serial.print(F("Took "));
-  Serial.print(time);
-  Serial.println(F(" ms"));
   lcd.setBacklight(WHITE);
+  renderMenu();
 }
-
-/////////////////////////////////////////////////////////////
-// eepromSetup
-/////////////////////////////////////////////////////////////
-
-void eepromSetup() {
-  Serial.print(F("Checking if EEPROM needs to be set..."));
-// Note - EEWrap automatically uses an .update() on EEPROM writes, to avoid wearing out the EEPROM if the value being set is the same as the existing value. 
-
-  // Use settings values from EEPROM only if the if non-null values have been set
-  // Because 0 is not a valid value for Sample Window - this is the only variable we need to check for a null value to know that EEPROM is not yet set. When it is not set, set it with default values 
-  if (sampleWindow == 0) {
-    Serial.println(F("Setting EEPROM"));
-    delaySetting = delayTime;
-      Serial.println(F("Set delaySetting to "));
-      Serial.print(delayTime);
-    beepVol = 10;
-      Serial.println(F("Set beepSetting to "));
-      Serial.print(beepVol);
-    sensitivity = 1;
-      Serial.println(F("Set sensSetting to "));
-      Serial.print(sensitivity);
-    sampleWindow = 50;
-      Serial.println(F("Set sampleSetting to "));
-      Serial.print(sampleWindow);
-  }
-  else {
-    Serial.println(F("Reading settings from EEPROM)"));
-    delayTime = delaySetting;
-      Serial.println(F("Set delayTime to "));
-      Serial.print(delayTime);
-    beepVol = beepSetting;
-      Serial.println(F("Set beepVol to "));
-      Serial.print(beepVol);
-    sensitivity = sensSetting;
-      Serial.println(F("Set sensitivity to "));
-      Serial.print(sensitivity);
-    sampleWindow = sampleSetting;
-      Serial.println(F("Set sampleWindow to "));
-      Serial.print(sampleWindow);
-  }
-  sensToThreshold(); //make sure that the Threshold is calculated based on the stored sensitivity setting
-}
-
-
-////////////////////////////////////////////////////////////////////
-////Checking Free RAM http://playground.arduino.cc/Code/AvailableMemory
-////////////////////////////////////////////////////////////////////
-
-
-// this function will print the free RAM in bytes to the serial port
-void freeRAM () {
-  extern int __heap_start, *__brkval;
-  int v;
-  v = (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
-  Serial.print(v);
-  Serial.print(F("\n"));
-}
-
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //SETUP AND LOOP
@@ -1482,7 +1366,7 @@ void setup() {
 
   lcdSetup();
 
-  freeRAM();
+  DEBUG_PRINTLN();
 }
 
 //////////////
@@ -1535,233 +1419,233 @@ void loop() {
       if (buttons & BUTTON_UP) {
         //buttonTone();
         previousShot();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
         nextShot();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_LEFT) {
         ////buttonTone();
         reviewShot--;
         nextShot();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_RIGHT) {
         ////buttonTone();
         rateOfFire();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
     }
     else if (settingDelay == 1) { //setting delay
       if (buttons & BUTTON_UP) {
         //buttonTone();
         increaseDelay();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
         decreaseDelay();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_LEFT) {
         ////buttonTone();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_RIGHT) {
         ////buttonTone();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
     }
     else if (settingBeep == 1) { //setting beep volume
       if (buttons & BUTTON_UP) {
         //buttonTone();
         increaseBeepVol();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
         decreaseBeepVol();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_LEFT) {
         ////buttonTone();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_RIGHT) {
         ////buttonTone();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
     }
     else if (settingSensitivity == 1) { //setting sensitivity
       if (buttons & BUTTON_UP) {
         //buttonTone();
         increaseSensitivity();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
         decreaseSensitivity();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_LEFT) {
         ////buttonTone();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_RIGHT) {
         ////buttonTone();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
     }
     else if (settingEcho == 1) { //setting echo protection
       if (buttons & BUTTON_UP) {
         //buttonTone();
         increaseEchoProtect();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
         decreaseEchoProtect();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_LEFT) {
         ////buttonTone();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_RIGHT) {
         ////buttonTone();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
     }
     else if (settingParState == 1) { //settingParState
       if (buttons & BUTTON_UP) {
         //buttonTone();
         toggleParState();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
         toggleParState();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_LEFT) {
         ////buttonTone();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_RIGHT) {
         ////buttonTone();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
     }
     else if (editingPar == 1) { //editing a Par time
       if (buttons & BUTTON_UP) {
         //buttonTone();
         increaseTime();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
         decreaseTime();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_LEFT) {
         //buttonTone();
         leftCursor();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_RIGHT) {
         //buttonTone();
         rightCursor();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         editPar();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
     }
     else if (settingParTimes == 1) { //settingParState
       if (buttons & BUTTON_UP) {
         //buttonTone();
         parUp();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
         parDown();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_LEFT) {
         //buttonTone();
         tm.select();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_RIGHT) {
         ////buttonTone();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         editPar();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
     }
     else  {                     //on the main menu
       if (buttons & BUTTON_UP) {
         //buttonTone();
         tm.prev();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
         tm.next();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_LEFT) {
         //buttonTone();
         tm.back();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_RIGHT) {
         //buttonTone();
         tm.select(); //?? How will we make sure to render selected Menus off of the main area, while not allowing it to make MenuItems 'go'? Maybe checking whether the current item is a Menu or MenuItem? Is that possible? 
-        freeRAM();
+        DEBUG_PRINTLN();
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        freeRAM();
+        DEBUG_PRINTLN();
       }
     }
   }
