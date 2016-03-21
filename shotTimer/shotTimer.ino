@@ -1310,6 +1310,22 @@ void lcdSetup() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Listeners
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////
+// Button Listener
+//////////////
+byte buttonListener(byte * state, byte reading) {
+  //DEBUG_PRINTLN(F("Listening to button input"),0);
+  //uint8_t newButtons = lcd.readButtons();
+  boolean buttons = reading & ~*state; // if the reading and the last state are different this is true
+  *state = reading;
+  return buttons;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //SETUP AND LOOP
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1334,20 +1350,24 @@ void setup() {
   //Serial.println(isRunning);
 }
 
+
 //////////////
 // LOOP
 //////////////
 
 void loop() {
-  //only accept newly changed button states
-  uint8_t newButtons = lcd.readButtons();
-  uint8_t buttons = newButtons & ~buttonState;
-  buttonState = newButtons;
+  //Debounce only accept newly changed button states // break into function?
+  boolean buttons = buttonListener(&buttonState, lcd.readButtons());
   runTimer(&isRunning, &parEnabled); // http://stackoverflow.com/questions/18903528/permanently-changing-value-of-parameter
 
 //CONSIDER - BREAK THESE MANY BUTTON STATEMENTS INTO A SWITCH CASE BASED ON PROGRAM STATE
 //WITHIN EACH CASE HAVE A SINGLE BUTTON MANAGER FUNCTION FOR EACH STATE
-//ALTERNATELY USE A SINGLE BUTTON MANAGER FUNCTION THAT SWITCHES BASED ON STATE 
+//ALTERNATELY USE A SINGLE BUTTON MANAGER FUNCTION THAT SWITCHES BASED ON STATE
+
+//MENU STATE SWITCH CASE WILL NEED TO ACCOMMODATE NON-MENU PROGRAM STATES - i.e: editingPar
+//OR - perhaps all these other actions can become dynamically generated menu items?
+//ONE PROGRAM STATE SWITCH CASE AND ONE MENU STATE SWITCH CASE??
+
 
   if (buttons) {
     if (isRunning == 1) { //while timer is running

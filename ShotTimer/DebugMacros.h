@@ -127,9 +127,9 @@
     
   #else
     #define DEBUG_SETUP()
-    #define DEBUG_PRINT(str, bl)
+    #define DEBUG_PRINT(str)
     #define DEBUG_PRINTLN(str, bl)
-    #define DEBUG_PRINT_P(str, bl)
+    #define DEBUG_PRINT_P(str)
     #define DEBUG_PRINTLN_P(str, bl)
   #endif
 
