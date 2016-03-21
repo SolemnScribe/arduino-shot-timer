@@ -2,7 +2,7 @@
 // Defining Pitches
 // Author: hestenet
 // Canonical Repository: https://github.com/hestenet/arduino-shot-timer
-// 
+/////////////////////////////////
 //   This file is part of ShotTimer. 
 //
 //    This program is free software: you can redistribute it and/or modify

@@ -2,7 +2,7 @@
 // Shot Timer
 // Author: hestenet
 // Canonical Repository: https://github.com/hestenet/arduino-shot-timer
-// 
+/////////////////////////////////
 //   This file is part of ShotTimer. 
 //
 //    This program is free software: you can redistribute it and/or modify
@@ -52,16 +52,6 @@
 #define DEBUG  //comment this out to disable debug information and remove all DEBUG messages at compile time
 #include "DebugMacros.h"
 
-
-//////////////
-// Libraries - Mine
-//////////////
-
-//Tones for buttons and buzzer
-#include "Pitches.h" // musical pitches - optional - format: NOTE_C4 | This include makes no difference to program or dynamic memory
-//Convert time in ms elapsed to hh:mm:ss.mss
-#include "LegibleTime.h"
-
 //////////////
 // Libraries - Core
 // These are libraries shipped with Arduino, or that can be installed from the "Manage Libraries" interface of the Arduino IDE
@@ -104,22 +94,20 @@
 
 //////////////
 // Other code samples used:
+//////////////
 // Adafruit sound level sampling: http://learn.adafruit.com/adafruit-microphone-amplifier-breakout/measuring-sound-levels
-//////////////
-
 
 //////////////
-// DEFINITIONS
+// Libraries - Mine
 //////////////
 
-// These #defines make it easy to set the backlight color on the Adafruit RGB LCD
-#define RED 0x1
-#define YELLOW 0x3
-#define GREEN 0x2
-#define TEAL 0x6
-#define BLUE 0x4
-#define VIOLET 0x5
-#define WHITE 0x7
+//Tones for buttons and buzzer
+#include "Pitches.h" // musical pitches - optional - format: NOTE_C4 | This include makes no difference to program or dynamic memory
+//Convert time in ms elapsed to hh:mm:ss.mss
+#include "LegibleTime.h"
+//Helper functions for managing the LCD Display
+#include "LCDHelpers.h"
+
 
 //////////////
 // CONSTANTS
@@ -252,30 +240,6 @@ Menu mainMenu(mainName);
 // FUNCTIONS
 //////////////
 
-/////////////////////////////////////////////////////////////
-// MENU STATE CHANGES
-/////////////////////////////////////////////////////////////
-
-/*
-  This is an important function
-  Here we get a notification whenever the user changes the menu
-  That is, when the menu is navigated
-*/
-//menuBackend menuChangeEvent() 
-//void menuChangeEvent(MenuChangeEvent changed)
-//{
-//  Serial.print(F("Menu change from "));
-//  serialPrintln_p(changed.from.getName());
-//  Serial.print(F(" to "));
-//  serialPrintln_p(changed.to.getName()); //changed.to.getName()
-//  lcd.setCursor(0, 1);
-//  lcdPrint_p(changed.to.getName());
-//  lcd.print(F("            ")); //12 spaces
-//}
-
-
-
-
 
 //////////////////////////////////////////////////////////
 // Render the current menu screen
@@ -287,11 +251,11 @@ void renderMenu() {
   //const char* menu_name = menu->get_selected()->get_name();
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcdPrint_p(menu->get_name()); // lcd.print(F("Shot Timer v.3"));
+  lcdPrint_p(&lcd, menu->get_name()); // lcd.print(F("Shot Timer v.3"));
   DEBUG_PRINT(F("Rendering Menu: "));
   DEBUG_PRINTLN_P(menu->get_name(),0);
   lcd.setCursor(0, 1);
-  lcdPrint_p(menu->get_selected()->get_name());
+  lcdPrint_p(&lcd, menu->get_selected()->get_name());
   DEBUG_PRINT(F("Rendering Item: "));
   DEBUG_PRINTLN_P(menu->get_selected()->get_name(),0);
 }
@@ -404,7 +368,7 @@ void recordShot() {
   //serialPrintln(shotTimer.elapsed());
   //serialPrintln(shotChrono.elapsed(), 7);
   lcd.setCursor(6, 1);
-  lcdPrintTime(shotTimes[currentShot], 7); //lcd.print(F(" ")); if(currentShot > 1) {lcdPrintTime(shotTimes[currentShot]-shotTimes[currentShot-1],5);}
+  lcdPrintTime(&lcd, shotTimes[currentShot], 7); //lcd.print(F(" ")); if(currentShot > 1) {lcdPrintTime(&lcd, shotTimes[currentShot]-shotTimes[currentShot-1],5);}
   //9 characters             //1 characters                    //6 characters
   currentShot += 1;
   if (currentShot == sizeof(shotTimes)) { // if the current shot == 100 (1 more than the length of the array)
@@ -437,10 +401,10 @@ void on_menuReview_selected(MenuItem* p_menu_item) {
     lcd.setCursor(9, 0);
     lcd.print(F(" Split "));
     lcd.setCursor(0, 1);
-    lcdPrintTime(shotTimes[reviewShot], 7);
+    lcdPrintTime(&lcd, shotTimes[reviewShot], 7);
     lcd.print(F(" "));
     if (reviewShot > 1) {
-      lcdPrintTime(shotTimes[reviewShot] - shotTimes[reviewShot - 1], 5);
+      lcdPrintTime(&lcd, shotTimes[reviewShot] - shotTimes[reviewShot - 1], 5);
     }
     //9 characters             //1 characters                    //6 characters
   }
@@ -469,13 +433,13 @@ void nextShot() {
   lcd.setCursor(9, 0);
   lcd.print(F(" Split "));
   lcd.setCursor(0, 1);
-  lcdPrintTime(shotTimes[reviewShot], 7);
+  lcdPrintTime(&lcd, shotTimes[reviewShot], 7);
   lcd.print(F(" "));
   if (reviewShot == 0) {
     lcd.print(F("   1st"));
   }
   else {
-    lcdPrintTime(shotTimes[reviewShot] - shotTimes[reviewShot - 1], 5);
+    lcdPrintTime(&lcd, shotTimes[reviewShot] - shotTimes[reviewShot - 1], 5);
   }
 }
 
@@ -501,13 +465,13 @@ void previousShot() {
   lcd.setCursor(9, 0);
   lcd.print(F(" Split "));
   lcd.setCursor(0, 1);
-  lcdPrintTime(shotTimes[reviewShot], 7);
+  lcdPrintTime(&lcd, shotTimes[reviewShot], 7);
   lcd.print(F(" "));
   if (reviewShot == 0) {
     lcd.print(F("   1st"));
   }
   else {
-    lcdPrintTime(shotTimes[reviewShot] - shotTimes[reviewShot - 1], 5);
+    lcdPrintTime(&lcd, shotTimes[reviewShot] - shotTimes[reviewShot - 1], 5);
   }
 }
 
@@ -527,7 +491,7 @@ void rateOfFire(boolean includeDraw = true) {
   lcd.setCursor(0, 0);
   lcd.print(F("Avg Split:"));
   lcd.setCursor(11, 0);
-  lcdPrintTime(rof, 5);
+  lcdPrintTime(&lcd, rof, 5);
   lcd.setCursor(0, 1);
   lcd.print(F("                "));
   lcd.setCursor(0, 1);
@@ -643,7 +607,7 @@ void on_menuBuzzer_selected(MenuItem* p_menu_item) {
     lcd.setCursor(0, 0);
     lcd.print(F("Buzzer Volume"));
     lcd.setCursor(0, 1);
-    lcd2digits(beepVol);
+    lcdPrint(&lcd, beepVol, 2);
   }
   else {
     beepSetting = beepVol;
@@ -665,8 +629,8 @@ void increaseBeepVol() {
     beepVol++;
   }
   lcd.setCursor(0, 1);
-  lcd2digits(beepVol);
-  lcd.print(F("                "));
+  lcdPrint(&lcd, beepVol, 2);
+  lcd.print(F("                ")); //TODO REplace with a single PROGMEM clear buffer
 }
 
 /////////////////////////////////////////////////////////////
@@ -681,7 +645,7 @@ void decreaseBeepVol() {
     beepVol--;
   }
   lcd.setCursor(0, 1);
-  lcd2digits(beepVol);
+  lcdPrint(&lcd, beepVol, 2);
   lcd.print(F("                "));
 }
 
@@ -697,7 +661,7 @@ void on_menuSensitivity_selected(MenuItem* p_menu_item) {
     lcd.setCursor(0, 0);
     lcd.print(F("Sensitivity"));
     lcd.setCursor(0, 1);
-    lcd2digits(sensitivity);
+    lcdPrint(&lcd, sensitivity, 2);
   }
   else {
     sensSetting = sensitivity;
@@ -720,7 +684,7 @@ void increaseSensitivity() {
   }
   sensToThreshold();
   lcd.setCursor(0, 1);
-  lcd2digits(sensitivity);
+  lcdPrint(&lcd, sensitivity, 2);
   lcd.print(F("                "));
 }
 
@@ -737,7 +701,7 @@ void decreaseSensitivity() {
   }
   sensToThreshold();
   lcd.setCursor(0, 1);
-  lcd2digits(sensitivity);
+  lcdPrint(&lcd, sensitivity, 2);
   lcd.print(F("                "));
 }
 
@@ -777,8 +741,7 @@ void increaseEchoProtect() {
   }
   lcd.setCursor(0, 1);
   lcd.print(sampleWindow);
-  lcd.print(F("ms"));
-  lcd.print(F("                "));
+  lcd.print(F("ms              ")); //CLEARLINE
 }
 
 /////////////////////////////////////////////////////////////
@@ -794,8 +757,7 @@ void decreaseEchoProtect() {
   }
   lcd.setCursor(0, 1);
   lcd.print(sampleWindow);
-  lcd.print(F("ms"));
-  lcd.print(F("                "));
+  lcd.print(F("ms              "));//CLEARLINE
 }
 
 /////////////////////////////////////////////////////////////
@@ -860,7 +822,7 @@ void on_menuParTimes_selected(MenuItem* p_menu_item) {
     lcd.setCursor(5, 0);
     lcd.print(F("Par"));
     lcd.setCursor(9, 0);
-    lcd2digits(currentPar + 1);
+    lcdPrint(&lcd, (currentPar + 1), 2);
     lcd.setCursor(4, 1);
     if (currentPar > 0) {
       lcd.print(F("+"));
@@ -868,7 +830,7 @@ void on_menuParTimes_selected(MenuItem* p_menu_item) {
     else {
       lcd.print(F(" "));
     }
-    lcdPrintTime(parTimes[currentPar], 7);
+    lcdPrintTime(&lcd, parTimes[currentPar], 7);
   }
   else {
     renderMenu();
@@ -889,7 +851,7 @@ void parUp() {
     currentPar--;
   }
   lcd.setCursor(9, 0);
-  lcd2digits(currentPar + 1);
+  lcdPrint(&lcd, (currentPar + 1), 2);
   lcd.setCursor(4, 1);
   if (currentPar > 0) {
     lcd.print(F("+"));
@@ -897,7 +859,7 @@ void parUp() {
   else {
     lcd.print(F(" "));
   }
-  lcdPrintTime(parTimes[currentPar], 7);
+  lcdPrintTime(&lcd, parTimes[currentPar], 7);
 }
 
 /////////////////////////////////////////////////////////////
@@ -912,7 +874,7 @@ void parDown() {
     currentPar++;
   }
   lcd.setCursor(9, 0);
-  lcd2digits(currentPar + 1);
+  lcdPrint(&lcd, (currentPar + 1), 2);
   lcd.setCursor(4, 1);
   if (currentPar > 0) {
     lcd.print(F("+"));
@@ -920,7 +882,7 @@ void parDown() {
   else {
     lcd.print(F(" "));
   }
-  lcdPrintTime(parTimes[currentPar], 7);
+  lcdPrintTime(&lcd, parTimes[currentPar], 7);
 }
 
 
@@ -937,7 +899,7 @@ void editPar() {
     lcd.print(F("Edit        "));
     lcd.setCursor(0, 1);
     lcd.print(F("P"));
-    lcd2digits(currentPar + 1);
+    lcdPrint(&lcd, currentPar + 1, 2);
     if (currentPar > 0) {
       lcd.print(F(" +"));
     }
@@ -1087,7 +1049,7 @@ void increaseTime() {
       break;
   }
   lcd.setCursor(5, 1);
-  lcdPrintTime(parTimes[currentPar], 7);
+  lcdPrintTime(&lcd, parTimes[currentPar], 7);
 }
 
 /////////////////////////////////////////////////////////////
@@ -1154,98 +1116,8 @@ void decreaseTime() {
       break;
   }
   lcd.setCursor(5, 1);
-  lcdPrintTime(parTimes[currentPar], 7);
+  lcdPrintTime(&lcd, parTimes[currentPar], 7);
 }
-
-/////////////////////////////////////////////////////////////
-// PROGMEM Helper - Print a string from PROGMEM to an LCD Screen
-/////////////////////////////////////////////////////////////
-
-void lcdPrint_p(const char * str)
-{
-  char c;
-  if (!str)
-  {
-    return;
-  }
-  while (c = pgm_read_byte(str++))
-    lcd.print(c);
-}
-
-/////////////////////////////////////////////////////////////
-// Print time to an LCD screen
-/////////////////////////////////////////////////////////////
-
-void lcdPrintTime(uint32_t t, byte digits)
-{
-  uint32_t x;
-  if (digits >= 8)
-  {
-    // HOURS
-    x = t / 3600000UL;
-    t -= x * 3600000UL;
-    lcd2digits(x);
-    lcd.print(':');
-  }
-  if (digits >= 6) {
-    // MINUTES
-    x = t / 60000UL;
-    t -= x * 60000UL;
-    lcd2digits(x);
-    lcd.print(':');
-  }
-  if (digits >= 4) {
-    // SECONDS
-    x = t / 1000UL;
-    t -= x * 1000UL;
-    lcd2digits(x);
-  }
-  if (digits == 9 || digits == 7 || digits == 5)
-  {
-    // THOUSANDTHS
-    lcd.print('.');
-    //x = (t+5)/10L;  // rounded hundredths?
-    lcd3digits(t);
-  }
-  else if (digits >= 2) {
-    // ROUNDED HUNDREDTHS
-    lcd.print('.');
-    x = (t + 5) / 10L; // rounded hundredths?
-    lcd2digits(t);
-  }
-}
-
-/////////////////////////////////////////////////////////////
-// LCD Helper - 2 digits
-/////////////////////////////////////////////////////////////
-
-void lcd2digits(uint32_t x)
-{
-  if (x < 10) lcd.print(F("0"));
-  lcd.print(x);
-}
-
-/////////////////////////////////////////////////////////////
-// LCD Helper - 3 digits
-/////////////////////////////////////////////////////////////
-void lcd3digits(uint32_t x)
-{
-  if (x < 100) lcd.print(F("0"));
-  if (x < 10) lcd.print(F("0"));
-  lcd.print(x);
-}
-
-/////////////////////////////////////////////////////////////
-// LCD Helper - 4 digits
-/////////////////////////////////////////////////////////////
-
-void lcd4digits(uint32_t x) {
-  if (x < 1000) lcd.print(F("0"));
-  if (x < 100) lcd.print(F("0"));
-  if (x < 10) lcd.print(F("0"));
-  lcd.print(x);
-}
-
 
 /////////////////////////////////////////////////////////////
 // BEEP

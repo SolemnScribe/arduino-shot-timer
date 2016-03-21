@@ -2,7 +2,7 @@
 // Making Time Legible
 // Author: hestenet
 // Canonical Repository: https://github.com/hestenet/arduino-shot-timer
-//
+/////////////////////////////////
 //   This file is part of ShotTimer.
 //
 //    This program is free software: you can redistribute it and/or modify
@@ -21,6 +21,22 @@
 //
 /////////////////////////////////
 
+
+/////////////////////////////////////////////////////////////
+// Fit Digits - trim an array to the specified number of digits
+/////////////////////////////////////////////////////////////
+// Function to trim the array to the number of digits specified
+//http://stackoverflow.com/questions/12337836/shifting-elements-in-an-array-in-c-pointer-based
+// Alternate method to count digits: http://stackoverflow.com/questions/1489830/efficient-way-to-determine-number-of-digits-in-an-integer <-- COME BACK TO THIS ONE!
+void fitDigits(char *str, int digits) 
+{
+  int newIndex = strlen(str) - digits;
+  for (int i = 0; i != newIndex - 1; i++) 
+  {
+    *(str+i) = *(str+i+1);
+  }
+}
+
 /////////////////////////////////////////////////////////////
 // Convert Time - to a legible format
 /////////////////////////////////////////////////////////////
@@ -31,7 +47,8 @@
 void convertTime(uint32_t te, byte digits, char* str) //formerly called print2digits: http://arduino.cc/forum/index.php?topic=64024.30
 {
   //byte h, m, s // Can we store these and do UL math on them?
-
+  DEBUG_PRINTLN(F("Making this time legible:"),0);
+  DEBUG_PRINTLN(te,0);
   strcpy(str,"00:00:00.000"); //pre-set -- should this go in PROGMEM? Experiment later - A: Probably not - I'm going to manipulate it quite a bit every time this is called. It will wind up in memory as STR anyway
 
   uint32_t tx; // Used to store the portion of time elapsed that matches the resolution(hours,mins,seconds) I am calculating
@@ -84,4 +101,8 @@ void convertTime(uint32_t te, byte digits, char* str) //formerly called print2di
     tx /= 10;
   }
   DEBUG_PRINTLN(str, 0);
+  DEBUG_PRINT(F("Stripping digits to: ")); DEBUG_PRINTLN(digits,0);
+  fitDigits(str, digits);
+  DEBUG_PRINTLN(str, 0);
+  DEBUG_PRINTLN(F("Done Converting Time"), 0);
 }

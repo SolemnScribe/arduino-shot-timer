@@ -3,7 +3,7 @@
 // Author: hestenet
 // Canonical Repository: https://github.com/hestenet/arduino-shot-timer
 // Ideas sourced from: http://forum.arduino.cc/index.php?topic=46900.0
-// 
+///////////////////////////////// 
 //   This file is part of ShotTimer. 
 //
 //    This program is free software: you can redistribute it and/or modify
