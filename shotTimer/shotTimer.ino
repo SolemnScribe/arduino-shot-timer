@@ -31,7 +31,7 @@
 
 /////////////////////////////////////////
 // Current Flaws:
-// listenForShots(); probably could be redesigned to run on a timer interupt.
+// shotListener(); probably could be redesigned to run on a timer interupt.
 // as a result, the parTimes beep may come as early or late as half the sample window time.
 // However, at most reasonable sampleWindows this will likely be indistinguishable to the user
 //
@@ -302,8 +302,6 @@ int sampleSound() {
 // Start the Shot Timer
 //////////////////////////////////////////////////////////
 // Consider changing these to be 'on_menu_event()' functions - such that they can have a local variable for whether the menu item is active, rather than using a global. 
-// Also - transition menus and re-render menu screens in the stop condition. 
-void on_menuStart_selected(MenuItem* p_menu_item);
 //////////////////////////////////////////////////////////
 
 void on_menuStart_selected(MenuItem* p_menu_item) {
@@ -325,10 +323,7 @@ void on_menuStart_selected(MenuItem* p_menu_item) {
   lcd.setCursor(0, 1);
   lcd.print(F("Last:")); //10 chars
   BEEP();
-  //shotTimer.start();
-  
   shotChrono.restart();
-  //serialPrintln(shotTimer.elapsed(), 7);
   convertTime(shotChrono.elapsed(), 7, NULL); // for DEBUG
 }
 
@@ -342,7 +337,7 @@ void runTimer(boolean* runState, boolean* parState)
   if (*runState == true)
   { 
     DEBUG_PRINTLN(F("...running..."), 0);
-    listenForShots();
+    shotListener();
     parBeeps(parState);
   }
 }
@@ -394,6 +389,7 @@ void stopTimer(boolean out = 0) {
   if (out == 1) {
     lcd.setBacklight(WHITE);
   }
+  // Also - transition menus and re-render menu screens in the stop condition. 
   tm.next(); //move the menu down to review mode
   tm.select(); //move into shot review mode immediately
 }
@@ -417,18 +413,6 @@ void recordShot() {
     DEBUG_PRINTLN(F("Out of room for shots"),0);
     stopTimer(1);
   }
-}
-
-//////////////////////////////////////////////////////////
-// Listen for Shots
-//////////////////////////////////////////////////////////
-
-void listenForShots() {
-  DEBUG_PRINTLN(F("Listen-start:"),0);
-  if (sampleSound() >= threshold) {
-    recordShot();
-  }
-  DEBUG_PRINTLN(F("Listen-end:"),0);
 }
 
 //////////////////////////////////////////////////////////
@@ -1324,6 +1308,18 @@ byte buttonListener(byte * state, byte reading) {
   return buttons;
 }
 
+//////////////////////////////////////////////////////////
+// Listen for Shots
+//////////////////////////////////////////////////////////
+
+void shotListener() {
+  DEBUG_PRINTLN(F("Listen-start:"),0);
+  if (sampleSound() >= threshold) {
+    recordShot();
+  }
+  DEBUG_PRINTLN(F("Listen-end:"),0);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //SETUP AND LOOP
@@ -1401,7 +1397,7 @@ void loop() {
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        DEBUG_PRINTLN(NULL, 0);
+        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
       }
     }
     else if (settingDelay == 1) { //setting delay
@@ -1426,7 +1422,7 @@ void loop() {
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        DEBUG_PRINTLN(NULL, 0);
+        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
       }
     }
     else if (settingBeep == 1) { //setting beep volume
@@ -1451,7 +1447,7 @@ void loop() {
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        DEBUG_PRINTLN(NULL, 0);
+        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
       }
     }
     else if (settingSensitivity == 1) { //setting sensitivity
@@ -1476,7 +1472,7 @@ void loop() {
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        DEBUG_PRINTLN(NULL, 0);
+        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
       }
     }
     else if (settingEcho == 1) { //setting echo protection
@@ -1501,7 +1497,7 @@ void loop() {
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        DEBUG_PRINTLN(NULL, 0);
+        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
       }
     }
     else if (settingParState == 1) { //settingParState
@@ -1526,7 +1522,7 @@ void loop() {
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         tm.select();
-        DEBUG_PRINTLN(NULL, 0);
+        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
       }
     }
     else if (editingPar == 1) { //editing a Par time
@@ -1553,7 +1549,7 @@ void loop() {
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         editPar();
-        DEBUG_PRINTLN(NULL, 0);
+        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
       }
     }
     else if (settingParTimes == 1) { //settingParState
@@ -1565,48 +1561,51 @@ void loop() {
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
         parDown();
-        DEBUG_PRINTLN(NULL, 0);
+        DEBUG_PRINTLN(F("DOWN/SELECT"), 0);
       }
       if (buttons & BUTTON_LEFT) {
         //buttonTone();
         tm.select();
-        DEBUG_PRINTLN(NULL, 0);
+        DEBUG_PRINTLN(F("LEFT/SELECT"), 0);
       }
       if (buttons & BUTTON_RIGHT) {
         ////buttonTone();
-        DEBUG_PRINTLN(NULL, 0);
+        DEBUG_PRINTLN(F("RIGHT/NONE"), 0);
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
         editPar();
-        DEBUG_PRINTLN(NULL, 0);
+        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
       }
     }
     else  {                     //on the main menu
       if (buttons & BUTTON_UP) {
         //buttonTone();
+        DEBUG_PRINTLN(F("UP/PREV"), 0);
         tm.prev();
-        DEBUG_PRINTLN(NULL, 0);
+        renderMenu();
       }
       if (buttons & BUTTON_DOWN) {
         //buttonTone();
+        DEBUG_PRINTLN(F("DOWN/NEXT"), 0);
         tm.next();
-        DEBUG_PRINTLN(NULL, 0);
+        renderMenu();
       }
       if (buttons & BUTTON_LEFT) {
         //buttonTone();
+        DEBUG_PRINTLN(F("LEFT/BACK"), 0);
         tm.back();
-        DEBUG_PRINTLN(NULL, 0);
+        renderMenu();
       }
       if (buttons & BUTTON_RIGHT) {
         //buttonTone();
+        DEBUG_PRINTLN(F("RIGHT/SELECT"), 0);
         tm.select(); //?? How will we make sure to render selected Menus off of the main area, while not allowing it to make MenuItems 'go'? Maybe checking whether the current item is a Menu or MenuItem? Is that possible? 
-        DEBUG_PRINTLN(NULL, 0);
       }
       if (buttons & BUTTON_SELECT) {
         //buttonTone();
+        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
         tm.select();
-        DEBUG_PRINTLN(NULL, 0);
       }
     }
   }
