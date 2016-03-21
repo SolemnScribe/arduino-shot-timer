@@ -1352,7 +1352,7 @@ void setup() {
 //////////////
 
 void loop() {
-  //Debounce only accept newly changed button states // break into function?
+  //Debounce - only accept newly changed button states @TODO Why are all buttons SELECT/SELECT?
   boolean buttons = buttonListener(&buttonState, lcd.readButtons());
   runTimer(&isRunning, &parEnabled); // http://stackoverflow.com/questions/18903528/permanently-changing-value-of-parameter
 
