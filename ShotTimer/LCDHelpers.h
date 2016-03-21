@@ -20,6 +20,11 @@
 //    http://www.gnu.org/licenses/lgpl.txt
 //
 /////////////////////////////////
+//
+// @TODO: Consider compatibility with MicroLCD for the 0.96" IC2 OLED
+// http://forum.arduino.cc/index.php?topic=105866.30
+//
+/////////////////////////////////
 
 //////////////
 // DEFINITIONS
