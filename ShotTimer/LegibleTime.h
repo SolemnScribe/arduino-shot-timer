@@ -22,13 +22,12 @@
 /////////////////////////////////
 
 /////////////////////////////////////////////////////////////
-// Serial Helper - Print time to a serial monitor
+// Convert Time - to a legible format
 /////////////////////////////////////////////////////////////
 //Consider making digits into an enum
 //Possibly add another function or another parameter to return strings of a certain length
 //String management reference:https://hackingmajenkoblog.wordpress.com/2016/02/04/the-evils-of-arduino-strings/
 
-//serialPrintln
 void convertTime(uint32_t te, byte digits, char* str) //formerly called print2digits: http://arduino.cc/forum/index.php?topic=64024.30
 {
   //byte h, m, s // Can we store these and do UL math on them?

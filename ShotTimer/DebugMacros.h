@@ -82,8 +82,10 @@
     }
 
     //////////////////////
-    // EXTERNAL MACROS <-- need to replace static strings with PROGMEM
+    // EXTERNAL MACROS 
     //////////////////////
+    #define DEBUG_SETUP()                 \ 
+      Serial.begin(9600);
     #define DEBUG_PRINT(str)              \
       Serial.print(str);
     #define DEBUG_PRINTLN(str, bl)        \
@@ -122,6 +124,7 @@
       serialPrintln_p(str);
     
   #else
+    #define DEBUG_SETUP()
     #define DEBUG_PRINT(str, bl)
     #define DEBUG_PRINTLN(str, bl)
     #define DEBUG_PRINT_P(str, bl)

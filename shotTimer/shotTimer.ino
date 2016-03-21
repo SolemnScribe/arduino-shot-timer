@@ -84,7 +84,7 @@
 //Chrono - LightChrono - chronometer - to replace StopWatch
 #include <LightChrono.h>
 
-//MenuSystem
+//MenuSystem  //NOTE: Version 2.0.2 recommended - the 2.1.0 release breaks this code! Not yet sure why. 
 #include <MenuSystem.h>
 
 //Adafruit RGB LCD Shield Library
@@ -288,8 +288,12 @@ void renderMenu() {
   lcd.clear();
   lcd.setCursor(0, 0);
   lcdPrint_p(menu->get_name()); // lcd.print(F("Shot Timer v.3"));
+  DEBUG_PRINT(F("Rendering Menu: "));
+  DEBUG_PRINTLN_P(menu->get_name(),0);
   lcd.setCursor(0, 1);
-  lcdPrint_p(menu->get_selected()->get_name()); //get_current_menu_name() is apparently no longer a thing! Argh.
+  lcdPrint_p(menu->get_selected()->get_name());
+  DEBUG_PRINT(F("Rendering Item: "));
+  DEBUG_PRINTLN_P(menu->get_selected()->get_name(),0);
 }
 
 //////////////////////////////////////////////////////////
@@ -1269,40 +1273,41 @@ void buttonTone() {
 /////////////////////////////////////////////////////////////
 
 void eepromSetup() {
-  DEBUG_PRINT(F("Checking if EEPROM needs to be set..."));
-
+  DEBUG_PRINTLN(F("Checking if EEPROM needs to be set..."), 0);
 
   // Use settings values from EEPROM only if the if non-null values have been set
-  // Because 0 is not a valid value for Sample Window - this is the only variable we need to check for a null value to know that EEPROM is not yet set. When it is not set, set it with default values 
-  if (sampleWindow == 0) {
+  // Because 255 is the default for unused EEPROM and not a valid value for Sample Window...
+  // if ANY of our EEPROM stored settings come back 255, we'll know that the EEPROM settings have not been set
+  // By checking all 4 settings, we help ensure that legacy EEPROM data doesn't slip in and cause unexpected behavior.
+  if (sampleSetting == 255 || sensSetting == 255 || beepSetting == 255 || delaySetting == 255) {
     DEBUG_PRINTLN(F("Setting EEPROM"), 0);
     delaySetting = delayTime;
       DEBUG_PRINTLN(F("Set delaySetting to "), 0);
-      DEBUG_PRINT(delayTime);
-    beepVol = 10;
+      DEBUG_PRINTLN(delayTime, 0);
+    beepSetting = beepVol;
       DEBUG_PRINTLN(F("Set beepSetting to "), 0);
-      DEBUG_PRINT(beepVol);
-    sensitivity = 1;
+      DEBUG_PRINTLN(beepVol, 0);
+    sensSetting = sensitivity;
       DEBUG_PRINTLN(F("Set sensSetting to "), 0);
-      DEBUG_PRINT(sensitivity);
-    sampleWindow = 50;
+      DEBUG_PRINTLN(sensitivity, 0);
+    sampleSetting = sampleWindow;
       DEBUG_PRINTLN(F("Set sampleSetting to "), 0);
-      DEBUG_PRINT(sampleWindow);
+      DEBUG_PRINTLN(sampleWindow, 0);
   }
   else {
     DEBUG_PRINTLN(F("Reading settings from EEPROM)"), 0);
     delayTime = delaySetting;
       DEBUG_PRINTLN(F("Set delayTime to "), 0);
-      DEBUG_PRINT(delayTime);
+      DEBUG_PRINTLN(delayTime, 0);
     beepVol = beepSetting;
       DEBUG_PRINTLN(F("Set beepVol to "), 0);
-      DEBUG_PRINT(beepVol);
+      DEBUG_PRINTLN(beepVol, 0);
     sensitivity = sensSetting;
       DEBUG_PRINTLN(F("Set sensitivity to "), 0);
-      DEBUG_PRINT(sensitivity);
+      DEBUG_PRINTLN(sensitivity, 0);
     sampleWindow = sampleSetting;
       DEBUG_PRINTLN(F("Set sampleWindow to "), 0);
-      DEBUG_PRINT(sampleWindow);
+      DEBUG_PRINTLN(sampleWindow, 0);
   }
   sensToThreshold(); //make sure that the Threshold is calculated based on the stored sensitivity setting
 }
@@ -1314,17 +1319,30 @@ void eepromSetup() {
 
 void menuSetup()
 {
+  DEBUG_PRINTLN(F("Setting up menu:"),0);
+  DEBUG_PRINTLN_P(mainName,0);
   mainMenu.add_item(&menuStart, &on_menuStart_selected);
+  DEBUG_PRINTLN_P(startName,0);
   mainMenu.add_item(&menuReview, &on_menuReview_selected);
+  DEBUG_PRINTLN_P(reviewName,0);
   mainMenu.add_menu(&parMenu);
+  DEBUG_PRINTLN_P(parName,0);
     parMenu.add_item(&menuParState, &on_menuParState_selected);
+    DEBUG_PRINTLN_P(parSetName,0);
     parMenu.add_item(&menuParTimes, &on_menuParTimes_selected);
+    DEBUG_PRINTLN_P(parTimesName,0);
   mainMenu.add_menu(&settingsMenu);
+  DEBUG_PRINTLN_P(settingsName,0);
     settingsMenu.add_item(&menuStartDelay, &on_menuStartDelay_selected);
+    DEBUG_PRINTLN_P(setDelayName,0);
     settingsMenu.add_item(&menuBuzzer, &on_menuBuzzer_selected);
+    DEBUG_PRINTLN_P(buzzerName,0);
     settingsMenu.add_item(&menuSensitivity, &on_menuSensitivity_selected);
+    DEBUG_PRINTLN_P(sensitivityName,0);
     settingsMenu.add_item(&menuEcho, &on_menuEcho_selected);
+    DEBUG_PRINTLN_P(echoName,0);
   tm.set_root_menu(&mainMenu); 
+  DEBUG_PRINTLN(F("Menu Setup Complete"),0);
 }
 
 //////////////////////////////////////////////////////////
@@ -1347,26 +1365,17 @@ void lcdSetup() {
 //////////////
 
 void setup() {
-  /////////////
-  // Debugging:
-  /////////////
-
-  //Open serial communications and wait for port to open:
-  Serial.begin(9600);
-  //    while (!Serial) {
-  //      ; // wait for serial port to connect. Needed for Leonardo only
-  //    }
-
+  DEBUG_SETUP();
+  
   randomSeed(analogRead(1));
+  
+  //eepromSetup();
 
-  eepromSetup();
-
-  //menuSetup(timerMenu);
   menuSetup();
 
   lcdSetup();
 
-  DEBUG_PRINTLN(NULL, 0);
+  DEBUG_PRINTLN(F("Setup Complete"), 0);
 }
 
 //////////////
