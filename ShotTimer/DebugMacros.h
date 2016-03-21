@@ -85,7 +85,9 @@
     // EXTERNAL MACROS 
     //////////////////////
     #define DEBUG_SETUP()                 \ 
-      Serial.begin(9600);
+      Serial.begin(9600);                 \
+      DEBUG_PRINTLN(F("DEBUG is enabled."),0); \
+      DEBUG_PRINTLN(F("Comment out DEBUG and recompile to free PROGMEM and SRAM."),0);
     #define DEBUG_PRINT(str)              \
       Serial.print(str);
     #define DEBUG_PRINTLN(str, bl)        \

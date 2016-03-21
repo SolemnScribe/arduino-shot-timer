@@ -205,6 +205,8 @@ byte programState; // see if we can refactor our booleans below to use this sing
   // 8 - Setting Sensitivity 
   // 9 - Setting Echo
   // +100 = parEnabled
+
+// http://stackoverflow.com/questions/18903528/permanently-changing-value-of-parameter
 boolean isRunning = 0;
 boolean reviewingShots = false;
 
@@ -238,6 +240,9 @@ Menu mainMenu(mainName);
 
 //////////////
 // FUNCTIONS
+//////////////
+// Note: Any functions with reference parameters i.e myFunction(char &str); must be prototyped manually
+// A prototype is simply an empty declaration
 //////////////
 
 
@@ -292,22 +297,17 @@ int sampleSound() {
   return (peakToPeak);
 }
 
-//////////////////////////////////////////////////////////
-// Listen for Shots
-//////////////////////////////////////////////////////////
-
-void listenForShots() {
-  if (sampleSound() >= threshold) {
-    recordShot();
-  }
-}
 
 //////////////////////////////////////////////////////////
 // Start the Shot Timer
 //////////////////////////////////////////////////////////
 // Consider changing these to be 'on_menu_event()' functions - such that they can have a local variable for whether the menu item is active, rather than using a global. 
 // Also - transition menus and re-render menu screens in the stop condition. 
+void on_menuStart_selected(MenuItem* p_menu_item);
+//////////////////////////////////////////////////////////
+
 void on_menuStart_selected(MenuItem* p_menu_item) {
+  DEBUG_PRINTLN(F("Starting Timer"),0);
   isRunning = 1;
   lcd.setBacklight(GREEN);
   //shotTimer.restart(); //reset the timer to 0
@@ -331,10 +331,52 @@ void on_menuStart_selected(MenuItem* p_menu_item) {
   //serialPrintln(shotTimer.elapsed(), 7);
   convertTime(shotChrono.elapsed(), 7, NULL); // for DEBUG
 }
+
+//////////////////////////////////////////////////////////
+// Run the shot timer - runs in loop()
+//////////////////////////////////////////////////////////
+
+void runTimer(boolean* runState, boolean* parState)
+{
+  //DEBUG_PRINTLN(*runState, 0);
+  if (*runState == true)
+  { 
+    DEBUG_PRINTLN(F("...running..."), 0);
+    listenForShots();
+    parBeeps(parState);
+  }
+}
+//////////////////////////////////////////////////////////
+// Beep at each par time - runs indirectly in loop()
+//////////////////////////////////////////////////////////
+
+void parBeeps(boolean* parState)
+{
+    //DEBUG_PRINTLN(*parState, 0);
+    if (*parState == true) {
+      DEBUG_PRINTLN(F("...check for par beep..."),0)
+      additivePar = 0;
+      for (byte i = 0; i < sizeof(parTimes); i++) {
+        if (parTimes[i] == 0) {
+          break;
+        }
+        additivePar += parTimes[i]; // add the parTimes together
+        //if (shotTimer.elapsed() <= (additivePar + (sampleWindow / 2)) && shotTimer.elapsed() >= (additivePar - sampleWindow / 2)){
+        int timeElapsed = shotChrono.elapsed();
+        if (timeElapsed <= (additivePar + (sampleWindow / 2)) && timeElapsed >= (additivePar - sampleWindow / 2)) {
+          DEBUG_PRINTLN(F("PAR BEEP!"),0);
+          BEEP();  //Beep if the current time matches (within the boundaries of sample window) the parTime
+        }
+      }
+
+    }
+}
+
 //////////////////////////////////////////////////////////
 // Stop the shot timer
 //////////////////////////////////////////////////////////
 void stopTimer(boolean out = 0) {
+  DEBUG_PRINTLN(F("Stopping Timer"),0);
   isRunning = 0;
   if (out == 1) {
     lcd.setBacklight(RED);
@@ -357,7 +399,7 @@ void stopTimer(boolean out = 0) {
 }
 
 //////////////////////////////////////////////////////////
-// record shots to the string array
+// Record shots to the string array
 //////////////////////////////////////////////////////////
 
 void recordShot() {
@@ -372,9 +414,23 @@ void recordShot() {
   //9 characters             //1 characters                    //6 characters
   currentShot += 1;
   if (currentShot == sizeof(shotTimes)) { // if the current shot == 100 (1 more than the length of the array)
+    DEBUG_PRINTLN(F("Out of room for shots"),0);
     stopTimer(1);
   }
 }
+
+//////////////////////////////////////////////////////////
+// Listen for Shots
+//////////////////////////////////////////////////////////
+
+void listenForShots() {
+  DEBUG_PRINTLN(F("Listen-start:"),0);
+  if (sampleSound() >= threshold) {
+    recordShot();
+  }
+  DEBUG_PRINTLN(F("Listen-end:"),0);
+}
+
 //////////////////////////////////////////////////////////
 //review shots - initialize the shot review screen
 //////////////////////////////////////////////////////////
@@ -385,7 +441,7 @@ void on_menuReview_selected(MenuItem* p_menu_item) {
     if (currentShot > 0) {
       reviewShot = currentShot - 1;
     }
-    DEBUG_PRINT(reviewShot);
+    DEBUG_PRINT(F("Reviewing Shot: ")); DEBUG_PRINTLN(reviewShot,0);
     //DEBUG FOR LOOP - PRINT ALL SHOT TIMES IN THE STRING TO SERIAL 
     for (int t = 0; t < currentShot; t++) {
       DEBUG_PRINT(F("Shot #"));
@@ -420,6 +476,7 @@ void on_menuReview_selected(MenuItem* p_menu_item) {
 //////////////////////////////////////////////////////////
 
 void nextShot() {
+  DEBUG_PRINTLN(F("nextShot()"), 0);
   if (currentShot == 0 || reviewShot == currentShot - 1) {
     reviewShot = 0;
   }
@@ -448,6 +505,7 @@ void nextShot() {
 //////////////////////////////////////////////////////////
 
 void previousShot() {
+  DEBUG_PRINTLN(F("previousShot()"), 0);
   if (currentShot == 0) {
     reviewShot = 0;
   }
@@ -480,6 +538,7 @@ void previousShot() {
 //////////////////////////////////////////////////////////
 
 void rateOfFire(boolean includeDraw = true) {
+  DEBUG_PRINTLN(F("rateofFire()"), 0);
   unsigned int rof;
   if (!includeDraw) {
     rof = (shotTimes[currentShot - 1] - shotTimes[0]) / (currentShot - 1);
@@ -508,6 +567,7 @@ void rateOfFire(boolean includeDraw = true) {
 
 void on_menuStartDelay_selected(MenuItem* p_menu_item) {
   settingDelay = !settingDelay;
+  DEBUG_PRINT(F("Setting Delay: "));DEBUG_PRINTLN(settingDelay, 0);
   if (settingDelay == 1) {
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -527,7 +587,6 @@ void on_menuStartDelay_selected(MenuItem* p_menu_item) {
     delaySetting = delayTime;
     renderMenu();
   }
-  DEBUG_PRINTLN(settingDelay, 0);
 }
 
 
@@ -536,6 +595,7 @@ void on_menuStartDelay_selected(MenuItem* p_menu_item) {
 /////////////////////////////////////////////////////////////
 
 void increaseDelay() {
+  DEBUG_PRINTLN(F("increaseDelay()"), 0);
   if (delayTime == 12) {
     delayTime = 0;
   }
@@ -560,6 +620,7 @@ void increaseDelay() {
 /////////////////////////////////////////////////////////////
 
 void decreaseDelay() {
+  DEBUG_PRINTLN(F("decreaseDelay()"), 0);
   if (delayTime == 0) {
     delayTime = 12;
   }
@@ -584,6 +645,7 @@ void decreaseDelay() {
 /////////////////////////////////////////////////////////////
 
 void startDelay() {
+  DEBUG_PRINT(F("Start Delay: ")); DEBUG_PRINTLN(delayTime, 0);
   if (delayTime > 11) {
     delay(random(2000, 6001)); //from 2 to 6 seconds
   }
@@ -602,6 +664,7 @@ void startDelay() {
 
 void on_menuBuzzer_selected(MenuItem* p_menu_item) {
   settingBeep = !settingBeep;
+  DEBUG_PRINT(F("Setting Beep: "));DEBUG_PRINTLN(settingBeep, 0);
   if (settingBeep == 1) {
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -622,6 +685,7 @@ void on_menuBuzzer_selected(MenuItem* p_menu_item) {
 /////////////////////////////////////////////////////////////
 
 void increaseBeepVol() {
+  DEBUG_PRINTLN(F("increaseBeepVoly()"), 0);
   if (beepVol == 10) {
     beepVol = 0;
   }
@@ -638,6 +702,7 @@ void increaseBeepVol() {
 /////////////////////////////////////////////////////////////
 
 void decreaseBeepVol() {
+  DEBUG_PRINTLN(F("decreaseBeepVoly()"), 0);
   if (beepVol == 0) {
     beepVol = 10;
   }
@@ -656,6 +721,7 @@ void decreaseBeepVol() {
 
 void on_menuSensitivity_selected(MenuItem* p_menu_item) {
   settingSensitivity = !settingSensitivity;
+  DEBUG_PRINT(F("Setting Sensitivity: "));DEBUG_PRINTLN(settingSensitivity, 0);
   if (settingSensitivity == 1) {
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -676,6 +742,7 @@ void on_menuSensitivity_selected(MenuItem* p_menu_item) {
 /////////////////////////////////////////////////////////////
 
 void increaseSensitivity() {
+  DEBUG_PRINTLN(F("increaseSensitivity()"), 0);
   if (sensitivity == 20) {
     sensitivity = 0;
   }
@@ -693,6 +760,7 @@ void increaseSensitivity() {
 /////////////////////////////////////////////////////////////
 
 void decreaseSensitivity() {
+  DEBUG_PRINTLN(F("decreaseSensitivity()"), 0);
   if (sensitivity == 0) {
     sensitivity = 20;
   }
@@ -712,6 +780,7 @@ void decreaseSensitivity() {
 
 void on_menuEcho_selected(MenuItem* p_menu_item) {
   settingEcho = !settingEcho;
+  DEBUG_PRINT(F("Setting Echo: "));DEBUG_PRINTLN(settingEcho, 0);
   if (settingEcho == 1) {
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -733,6 +802,7 @@ void on_menuEcho_selected(MenuItem* p_menu_item) {
 /////////////////////////////////////////////////////////////
 
 void increaseEchoProtect() {
+  DEBUG_PRINTLN(F("increaseEchoProtect()"), 0);
   if (sampleWindow == 100) {
     sampleWindow = 10;
   }
@@ -749,6 +819,7 @@ void increaseEchoProtect() {
 /////////////////////////////////////////////////////////////
 
 void decreaseEchoProtect() {
+  DEBUG_PRINTLN(F("decreaseEchoProtect()"), 0);
   if (sampleWindow == 10) {
     sampleWindow = 100;
   }
@@ -775,6 +846,7 @@ void sensToThreshold() {
 
 void on_menuParState_selected(MenuItem* p_menu_item) {
   settingParState = !settingParState;
+  DEBUG_PRINT(F("Setting ParState: "));DEBUG_PRINTLN(settingParState, 0);
   if (settingParState == 1) {
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -800,6 +872,7 @@ void on_menuParState_selected(MenuItem* p_menu_item) {
 
 void toggleParState() {
   parEnabled = !parEnabled;
+  DEBUG_PRINT(F("Toggled Par to: "));DEBUG_PRINTLN(parEnabled, 0);
   lcd.setCursor(0, 1);
   if (parEnabled == false) {
     lcd.print(F("[DISABLED]")); //10 characters
@@ -815,6 +888,7 @@ void toggleParState() {
 
 void on_menuParTimes_selected(MenuItem* p_menu_item) {
   settingParTimes = !settingParTimes;
+  DEBUG_PRINT(F("Setting Par Times: "));DEBUG_PRINTLN(settingParTimes, 0);
   if (settingParTimes == 1) {
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -844,6 +918,7 @@ void on_menuParTimes_selected(MenuItem* p_menu_item) {
 /////////////////////////////////////////////////////////////
 
 void parUp() {
+  DEBUG_PRINTLN(F("parUp()"), 0);
   if (currentPar == 0) {
     currentPar = sizeof(parTimes) - 1;
   }
@@ -867,6 +942,7 @@ void parUp() {
 /////////////////////////////////////////////////////////////
 
 void parDown() {
+  DEBUG_PRINTLN(F("parDown()"), 0);
   if (currentPar == sizeof(parTimes) - 1) {
     currentPar = 0;
   }
@@ -885,7 +961,6 @@ void parDown() {
   lcdPrintTime(&lcd, parTimes[currentPar], 7);
 }
 
-
 /////////////////////////////////////////////////////////////
 // editPar()
 /////////////////////////////////////////////////////////////
@@ -893,6 +968,7 @@ void parDown() {
 void editPar() {
   settingParTimes = 0;
   editingPar = !editingPar;
+  DEBUG_PRINT(F("Editing a Par Time: "));DEBUG_PRINTLN(editingPar, 0);
   if (editingPar == 1) {
     lcd.setBacklight(GREEN);
     lcd.setCursor(0, 0);
@@ -921,6 +997,7 @@ void editPar() {
 /////////////////////////////////////////////////////////////
 
 void leftCursor() {
+  DEBUG_PRINTLN(F("leftCursor()"), 0);
   if (parCursor == 7) {
     parCursor = 1;
   }
@@ -935,6 +1012,7 @@ void leftCursor() {
 /////////////////////////////////////////////////////////////
 
 void rightCursor() {
+  DEBUG_PRINTLN(F("leftCursor()"), 0);
   if (parCursor == 1) {
     parCursor = 7;
   }
@@ -949,6 +1027,7 @@ void rightCursor() {
 /////////////////////////////////////////////////////////////
 //switch case for cursor position displayed on screen
 void lcdCursor() {
+  DEBUG_PRINT(F("Displaying Cursor at: "));DEBUG_PRINTLN(parCursor, 0);
   switch (parCursor) {
     case 1: //milliseconds
       lcd.setCursor(11, 0); //icon at 13
@@ -990,6 +1069,7 @@ void lcdCursor() {
 /////////////////////////////////////////////////////////////
 
 void increaseTime() {
+  DEBUG_PRINT(F("Increase time at: "));DEBUG_PRINTLN(parCursor, 0);
   switch (parCursor) {
     case 1: // milliseconds
       if (parTimes[currentPar] == 5999999) {
@@ -1057,6 +1137,7 @@ void increaseTime() {
 /////////////////////////////////////////////////////////////
 
 void decreaseTime() {
+  DEBUG_PRINT(F("Decrease time at: "));DEBUG_PRINTLN(parCursor, 0);
   switch (parCursor) {
     case 1:
       if (parTimes[currentPar] < 1) {
@@ -1222,6 +1303,7 @@ void menuSetup()
 //////////////////////////////////////////////////////////
 
 void lcdSetup() {
+  DEBUG_PRINTLN(F("Setting up the LCD"),0);
   lcd.begin(16, 2);
   lcd.setBacklight(WHITE);
   renderMenu();
@@ -1238,6 +1320,7 @@ void lcdSetup() {
 
 void setup() {
   DEBUG_SETUP();
+  //Serial.println(isRunning);
   
   randomSeed(analogRead(1));
   
@@ -1248,6 +1331,7 @@ void setup() {
   lcdSetup();
 
   DEBUG_PRINTLN(F("Setup Complete"), 0);
+  //Serial.println(isRunning);
 }
 
 //////////////
@@ -1255,35 +1339,11 @@ void setup() {
 //////////////
 
 void loop() {
-  // DEBUG: compare result of sampleSound() vs the raw input
-  // debugAudioInput();
-
   //only accept newly changed button states
   uint8_t newButtons = lcd.readButtons();
   uint8_t buttons = newButtons & ~buttonState;
   buttonState = newButtons;
-
-
-  if (isRunning == 1) { //listening for shots
-    listenForShots();
-
-    if (parEnabled == 1) {
-      //EXTRACT INTO A parBeeps() FUNCTION 
-      additivePar = 0;
-      for (byte i = 0; i < sizeof(parTimes); i++) {
-        if (parTimes[i] == 0) {
-          break;
-        }
-        additivePar += parTimes[i]; // add the parTimes together
-        //if (shotTimer.elapsed() <= (additivePar + (sampleWindow / 2)) && shotTimer.elapsed() >= (additivePar - sampleWindow / 2)){
-        int timeElapsed = shotChrono.elapsed();
-        if (timeElapsed <= (additivePar + (sampleWindow / 2)) && timeElapsed >= (additivePar - sampleWindow / 2)) {
-          BEEP();  //Beep if the current time matches (within the boundaries of sample window) the parTime
-        }
-      }
-
-    }
-  }
+  runTimer(&isRunning, &parEnabled); // http://stackoverflow.com/questions/18903528/permanently-changing-value-of-parameter
 
 //CONSIDER - BREAK THESE MANY BUTTON STATEMENTS INTO A SWITCH CASE BASED ON PROGRAM STATE
 //WITHIN EACH CASE HAVE A SINGLE BUTTON MANAGER FUNCTION FOR EACH STATE
