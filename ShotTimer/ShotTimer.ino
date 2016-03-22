@@ -1409,7 +1409,16 @@ SWITCH PROGRAM STATE {
     break;
   }
 }
-  
+
+// buttonListener listens for input
+// check(currentState) and then reactToButtons(currentState); <-- simplify to just reactToButtons
+// while reacting to buttons
+  // switch currentState
+  // change what buttons do per state
+  // OR
+  // For each button
+  // decide what to do by default
+  // override if it changes based on currentState
 
 
 //CONSIDER - BREAK THESE MANY BUTTON STATEMENTS INTO A SWITCH CASE BASED ON PROGRAM STATE
