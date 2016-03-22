@@ -192,7 +192,7 @@ boolean parEnabled = false;
 ///////////////
 // Program State Variables
 ///////////////
-byte buttonState;
+uint8_t buttonsState;
 byte programState; // see if we can refactor our booleans below to use this single programState byte 
   // 0 - Navigating menus
   // 1 - Timer is running
@@ -1299,13 +1299,40 @@ void lcdSetup() {
 
 //////////////
 // Button Listener
+// returns true if the button state 
 //////////////
-byte buttonListener(byte * state, byte reading) {
+uint8_t buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* state) {
   //DEBUG_PRINTLN(F("Listening to button input"),0);
-  //uint8_t newButtons = lcd.readButtons();
-  boolean buttons = reading & ~*state; // if the reading and the last state are different this is true
-  *state = reading;
-  return buttons;
+  uint8_t stateNow = lcd->readButtons();
+  uint8_t newButton = stateNow & ~*state; // if the current and the last state are different this is true
+  if (newButton) {DEBUG_PRINT(F("ButtonIn: "));}
+  *state = stateNow;
+
+  if (newButton) {
+    if (newButton & BUTTON_UP) {
+      lcd->setBacklight(RED);
+      DEBUG_PRINTLN(F("UP"),0);
+      Serial.print(BUTTON_UP);
+    }
+    if (newButton & BUTTON_DOWN) {
+      lcd->setBacklight(YELLOW);
+      DEBUG_PRINTLN(F("DOWN"),0);
+    }
+    if (newButton & BUTTON_LEFT) {
+      lcd->setBacklight(GREEN);
+      DEBUG_PRINTLN(F("LEFT"),0);
+    }
+    if (newButton & BUTTON_RIGHT) {
+      lcd->setBacklight(TEAL);
+      DEBUG_PRINTLN(F("RIGHT"),0);
+    }
+    if (newButton & BUTTON_SELECT) {
+      lcd->setBacklight(VIOLET);
+      DEBUG_PRINTLN(F("SELECT"),0);
+    }
+  }
+  
+  return newButton;
 }
 
 //////////////////////////////////////////////////////////
@@ -1353,8 +1380,9 @@ void setup() {
 
 void loop() {
   //Debounce - only accept newly changed button states @TODO Why are all buttons SELECT/SELECT?
-  boolean buttons = buttonListener(&buttonState, lcd.readButtons());
-  runTimer(&isRunning, &parEnabled); // http://stackoverflow.com/questions/18903528/permanently-changing-value-of-parameter
+  //byte reading = lcd.readButtons();
+  uint8_t buttons = buttonListener(&lcd, &buttonsState);
+  //runTimer(&isRunning, &parEnabled); // http://stackoverflow.com/questions/18903528/permanently-changing-value-of-parameter
 
 //CONSIDER - BREAK THESE MANY BUTTON STATEMENTS INTO A SWITCH CASE BASED ON PROGRAM STATE
 //WITHIN EACH CASE HAVE A SINGLE BUTTON MANAGER FUNCTION FOR EACH STATE
@@ -1364,252 +1392,277 @@ void loop() {
 //OR - perhaps all these other actions can become dynamically generated menu items?
 //ONE PROGRAM STATE SWITCH CASE AND ONE MENU STATE SWITCH CASE??
 
-
+//uint8_t buttons = lcd.readButtons();
+ 
   if (buttons) {
-    if (isRunning == 1) { //while timer is running
-      if (buttons & BUTTON_SELECT) {
-        stopTimer();
-      }
+    DEBUG_PRINT(F("ButtonOut: "));
+    if (buttons & BUTTON_UP) {
+      lcd.setBacklight(RED);
+      DEBUG_PRINTLN(F("UP"),0);
     }
-
-    else  if (reviewingShots == 1) { //reviewing shots    /replace booleans for menus with a switch state based on a string or even based on a byte with values predefined?
-      if (buttons & BUTTON_UP) {
-        //buttonTone();
-        previousShot();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_DOWN) {
-        //buttonTone();
-        nextShot();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_LEFT) {
-        ////buttonTone();
-        reviewShot--;
-        nextShot();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_RIGHT) {
-        ////buttonTone();
-        rateOfFire();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_SELECT) {
-        //buttonTone();
-        tm.select();
-        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
-      }
+    if (buttons & BUTTON_DOWN) {
+      lcd.setBacklight(YELLOW);
+      DEBUG_PRINTLN(F("DOWN"),0);
     }
-    else if (settingDelay == 1) { //setting delay
-      if (buttons & BUTTON_UP) {
-        //buttonTone();
-        increaseDelay();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_DOWN) {
-        //buttonTone();
-        decreaseDelay();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_LEFT) {
-        ////buttonTone();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_RIGHT) {
-        ////buttonTone();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_SELECT) {
-        //buttonTone();
-        tm.select();
-        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
-      }
+    if (buttons & BUTTON_LEFT) {
+      lcd.setBacklight(GREEN);
+      DEBUG_PRINTLN(F("LEFT"),0);
     }
-    else if (settingBeep == 1) { //setting beep volume
-      if (buttons & BUTTON_UP) {
-        //buttonTone();
-        increaseBeepVol();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_DOWN) {
-        //buttonTone();
-        decreaseBeepVol();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_LEFT) {
-        ////buttonTone();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_RIGHT) {
-        ////buttonTone();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_SELECT) {
-        //buttonTone();
-        tm.select();
-        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
-      }
+    if (buttons & BUTTON_RIGHT) {
+      lcd.setBacklight(TEAL);
+      DEBUG_PRINTLN(F("RIGHT"),0);
     }
-    else if (settingSensitivity == 1) { //setting sensitivity
-      if (buttons & BUTTON_UP) {
-        //buttonTone();
-        increaseSensitivity();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_DOWN) {
-        //buttonTone();
-        decreaseSensitivity();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_LEFT) {
-        ////buttonTone();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_RIGHT) {
-        ////buttonTone();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_SELECT) {
-        //buttonTone();
-        tm.select();
-        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
-      }
-    }
-    else if (settingEcho == 1) { //setting echo protection
-      if (buttons & BUTTON_UP) {
-        //buttonTone();
-        increaseEchoProtect();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_DOWN) {
-        //buttonTone();
-        decreaseEchoProtect();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_LEFT) {
-        ////buttonTone();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_RIGHT) {
-        ////buttonTone();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_SELECT) {
-        //buttonTone();
-        tm.select();
-        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
-      }
-    }
-    else if (settingParState == 1) { //settingParState
-      if (buttons & BUTTON_UP) {
-        //buttonTone();
-        toggleParState();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_DOWN) {
-        //buttonTone();
-        toggleParState();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_LEFT) {
-        ////buttonTone();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_RIGHT) {
-        ////buttonTone();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_SELECT) {
-        //buttonTone();
-        tm.select();
-        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
-      }
-    }
-    else if (editingPar == 1) { //editing a Par time
-      if (buttons & BUTTON_UP) {
-        //buttonTone();
-        increaseTime();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_DOWN) {
-        //buttonTone();
-        decreaseTime();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_LEFT) {
-        //buttonTone();
-        leftCursor();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_RIGHT) {
-        //buttonTone();
-        rightCursor();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_SELECT) {
-        //buttonTone();
-        editPar();
-        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
-      }
-    }
-    else if (settingParTimes == 1) { //settingParState
-      if (buttons & BUTTON_UP) {
-        //buttonTone();
-        parUp();
-        DEBUG_PRINTLN(NULL, 0);
-      }
-      if (buttons & BUTTON_DOWN) {
-        //buttonTone();
-        parDown();
-        DEBUG_PRINTLN(F("DOWN/SELECT"), 0);
-      }
-      if (buttons & BUTTON_LEFT) {
-        //buttonTone();
-        tm.select();
-        DEBUG_PRINTLN(F("LEFT/SELECT"), 0);
-      }
-      if (buttons & BUTTON_RIGHT) {
-        ////buttonTone();
-        DEBUG_PRINTLN(F("RIGHT/NONE"), 0);
-      }
-      if (buttons & BUTTON_SELECT) {
-        //buttonTone();
-        editPar();
-        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
-      }
-    }
-    else  {                     //on the main menu
-      if (buttons & BUTTON_UP) {
-        //buttonTone();
-        DEBUG_PRINTLN(F("UP/PREV"), 0);
-        tm.prev();
-        renderMenu();
-      }
-      if (buttons & BUTTON_DOWN) {
-        //buttonTone();
-        DEBUG_PRINTLN(F("DOWN/NEXT"), 0);
-        tm.next();
-        renderMenu();
-      }
-      if (buttons & BUTTON_LEFT) {
-        //buttonTone();
-        DEBUG_PRINTLN(F("LEFT/BACK"), 0);
-        tm.back();
-        renderMenu();
-      }
-      if (buttons & BUTTON_RIGHT) {
-        //buttonTone();
-        DEBUG_PRINTLN(F("RIGHT/SELECT"), 0);
-        tm.select(); //?? How will we make sure to render selected Menus off of the main area, while not allowing it to make MenuItems 'go'? Maybe checking whether the current item is a Menu or MenuItem? Is that possible? 
-      }
-      if (buttons & BUTTON_SELECT) {
-        //buttonTone();
-        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
-        tm.select();
-      }
+    if (buttons & BUTTON_SELECT) {
+      lcd.setBacklight(VIOLET);
+      DEBUG_PRINTLN(F("SELECT"),0);
     }
   }
-}
+
+//  if (buttons) {
+//    if (isRunning == 1) { //while timer is running
+//      if (buttons & BUTTON_SELECT) {
+//        stopTimer();
+//      }
+//    }
+//
+//    else  if (reviewingShots == 1) { //reviewing shots    /replace booleans for menus with a switch state based on a string or even based on a byte with values predefined?
+//      if (buttons & BUTTON_UP) {
+//        //buttonTone();
+//        previousShot();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_DOWN) {
+//        //buttonTone();
+//        nextShot();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_LEFT) {
+//        ////buttonTone();
+//        reviewShot--;
+//        nextShot();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_RIGHT) {
+//        ////buttonTone();
+//        rateOfFire();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_SELECT) {
+//        //buttonTone();
+//        tm.select();
+//        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
+//      }
+//    }
+//    else if (settingDelay == 1) { //setting delay
+//      if (buttons & BUTTON_UP) {
+//        //buttonTone();
+//        increaseDelay();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_DOWN) {
+//        //buttonTone();
+//        decreaseDelay();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_LEFT) {
+//        ////buttonTone();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_RIGHT) {
+//        ////buttonTone();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_SELECT) {
+//        //buttonTone();
+//        tm.select();
+//        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
+//      }
+//    }
+//    else if (settingBeep == 1) { //setting beep volume
+//      if (buttons & BUTTON_UP) {
+//        //buttonTone();
+//        increaseBeepVol();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_DOWN) {
+//        //buttonTone();
+//        decreaseBeepVol();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_LEFT) {
+//        ////buttonTone();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_RIGHT) {
+//        ////buttonTone();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_SELECT) {
+//        //buttonTone();
+//        tm.select();
+//        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
+//      }
+//    }
+//    else if (settingSensitivity == 1) { //setting sensitivity
+//      if (buttons & BUTTON_UP) {
+//        //buttonTone();
+//        increaseSensitivity();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_DOWN) {
+//        //buttonTone();
+//        decreaseSensitivity();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_LEFT) {
+//        ////buttonTone();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_RIGHT) {
+//        ////buttonTone();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_SELECT) {
+//        //buttonTone();
+//        tm.select();
+//        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
+//      }
+//    }
+//    else if (settingEcho == 1) { //setting echo protection
+//      if (buttons & BUTTON_UP) {
+//        //buttonTone();
+//        increaseEchoProtect();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_DOWN) {
+//        //buttonTone();
+//        decreaseEchoProtect();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_LEFT) {
+//        ////buttonTone();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_RIGHT) {
+//        ////buttonTone();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_SELECT) {
+//        //buttonTone();
+//        tm.select();
+//        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
+//      }
+//    }
+//    else if (settingParState == 1) { //settingParState
+//      if (buttons & BUTTON_UP) {
+//        //buttonTone();
+//        toggleParState();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_DOWN) {
+//        //buttonTone();
+//        toggleParState();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_LEFT) {
+//        ////buttonTone();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_RIGHT) {
+//        ////buttonTone();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_SELECT) {
+//        //buttonTone();
+//        tm.select();
+//        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
+//      }
+//    }
+//    else if (editingPar == 1) { //editing a Par time
+//      if (buttons & BUTTON_UP) {
+//        //buttonTone();
+//        increaseTime();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_DOWN) {
+//        //buttonTone();
+//        decreaseTime();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_LEFT) {
+//        //buttonTone();
+//        leftCursor();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_RIGHT) {
+//        //buttonTone();
+//        rightCursor();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_SELECT) {
+//        //buttonTone();
+//        editPar();
+//        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
+//      }
+//    }
+//    else if (settingParTimes == 1) { //settingParState
+//      if (buttons & BUTTON_UP) {
+//        //buttonTone();
+//        parUp();
+//        DEBUG_PRINTLN(NULL, 0);
+//      }
+//      if (buttons & BUTTON_DOWN) {
+//        //buttonTone();
+//        parDown();
+//        DEBUG_PRINTLN(F("DOWN/SELECT"), 0);
+//      }
+//      if (buttons & BUTTON_LEFT) {
+//        //buttonTone();
+//        tm.select();
+//        DEBUG_PRINTLN(F("LEFT/SELECT"), 0);
+//      }
+//      if (buttons & BUTTON_RIGHT) {
+//        ////buttonTone();
+//        DEBUG_PRINTLN(F("RIGHT/NONE"), 0);
+//      }
+//      if (buttons & BUTTON_SELECT) {
+//        //buttonTone();
+//        editPar();
+//        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
+//      }
+//    }
+//    else  {                     //on the main menu
+//      if (buttons & BUTTON_UP) {
+//        //buttonTone();
+//        DEBUG_PRINTLN(F("UP/PREV"), 0);
+//        tm.prev();
+//        renderMenu();
+//      }
+//      if (buttons & BUTTON_DOWN) {
+//        //buttonTone();
+//        DEBUG_PRINTLN(F("DOWN/NEXT"), 0);
+//        tm.next();
+//        renderMenu();
+//      }
+//      if (buttons & BUTTON_LEFT) {
+//        //buttonTone();
+//        DEBUG_PRINTLN(F("LEFT/BACK"), 0);
+//        tm.back();
+//        renderMenu();
+//      }
+//      if (buttons & BUTTON_RIGHT) {
+//        //buttonTone();
+//        DEBUG_PRINTLN(F("RIGHT/SELECT"), 0);
+//        tm.select(); //?? How will we make sure to render selected Menus off of the main area, while not allowing it to make MenuItems 'go'? Maybe checking whether the current item is a Menu or MenuItem? Is that possible? 
+//      }
+//      if (buttons & BUTTON_SELECT) {
+//        //buttonTone();
+//        DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
+//        tm.select();
+//      }
+//    }
+//  }
+} //END OF LOOP
 
 
 
