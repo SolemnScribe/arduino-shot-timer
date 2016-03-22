@@ -93,10 +93,10 @@
 #include <toneAC.h>
 
 //////////////
-// Other code samples used:
+// Other helpful resources
 //////////////
 // Adafruit sound level sampling: http://learn.adafruit.com/adafruit-microphone-amplifier-breakout/measuring-sound-levels
-
+// http://stackoverflow.com/questions/18903528/permanently-changing-value-of-parameter
 //////////////
 // Libraries - Mine
 //////////////
@@ -175,42 +175,41 @@ byte sensitivity = 1;
 byte sampleWindow = 50;
 /////////////////////////////////////////
 
-//////////////
+/////////////////////////////////////////
 // GLOBAL VARIABLES
-//////////////
-unsigned long shotTimes[200];
-unsigned long parTimes[10];
+/////////////////////////////////////////
+unsigned long shotTimes[200]; // can we instantiate the size in setup()
+unsigned long parTimes[10]; // does this HAVE to be 10 for the par setting interface to work? Hardcoded?
 unsigned long additivePar;
-byte currentShot = 0;
-byte reviewShot = 0;
-byte currentPar = 0;
+byte currentShot; // REFACTOR, MAY NOT NEED TO BE GLOBAL
+byte reviewShot;  // REFACTOR, MAY NOT NEED TO BE GLOBAL
+byte currentPar;  // REFACTOR, MAY NOT NEED TO BE GLOBAL
 int threshold = 625; //The sensitivity setting is converted into a threshold value
 byte parCursor = 1;
-boolean parEnabled = false;
 
 
 ///////////////
 // Program State Variables
 ///////////////
 uint8_t buttonsState;
-byte programState; // see if we can refactor our booleans below to use this single programState byte 
-  // 0 - Navigating menus
-  // 1 - Timer is running
-  // 2 - Reviewing shots
-  // 3 - Setting Par State
-  // 4 - Setting Par Times
-  // 5 - ?? Editing Par
-  // 6 - Setting Delay
-  // 7 - Setting Beep
-  // 8 - Setting Sensitivity 
-  // 9 - Setting Echo
-  // +100 = parEnabled
+boolean parEnabled;
+enum programState {
+  MENU,         // Navigating menus
+  TIMER,       // Timer is running // && parEnabled
+  REVIEW,       // 2 - Reviewing shots 
+  SETPARSTATE,  // 3 - Setting Par State // && parEnabled
+  SETPARTIMES,  // 4 - Setting Par Times
+  SETINDPAR,    // 5 - ?? Editing Par // Setting Single Par
+  SETDELAY,     // 6 - Setting Delay
+  SETBEEP,      // 7 - Setting Beep
+  SETSENS,      // 8 - Setting Sensitivity 
+  SETECHO       // 9 - Setting Echo
+ } currentState; 
+
 
 // http://stackoverflow.com/questions/18903528/permanently-changing-value-of-parameter
 boolean isRunning = 0;
 boolean reviewingShots = false;
-
-
 boolean settingParState = false;
 boolean settingParTimes = false;
 boolean editingPar = false;
@@ -1379,10 +1378,39 @@ void setup() {
 //////////////
 
 void loop() {
-  //Debounce - only accept newly changed button states @TODO Why are all buttons SELECT/SELECT?
-  //byte reading = lcd.readButtons();
-  uint8_t buttons = buttonListener(&lcd, &buttonsState);
-  //runTimer(&isRunning, &parEnabled); // http://stackoverflow.com/questions/18903528/permanently-changing-value-of-parameter
+  uint8_t buttons = buttonListener(&lcd, &buttonsState); //Possibly all button actions should come before runTimer()
+  runTimer(&isRunning, &parEnabled); 
+  
+
+PSEUDOCODE
+
+// http://stackoverflow.com/questions/17796344/custom-enum-type-declaration-with-arduino
+// http://forum.arduino.cc/index.php?topic=45622.0
+// http://forum.arduino.cc/index.php?topic=88087.0
+// https://fowkc.wordpress.com/2013/12/04/how-the-arduino-ide-tries-to-be-too-helpful/
+enum programState { MENU, TIMER, REVIEW, ..., SETECHO };
+
+SWITCH PROGRAM STATE {
+  CASE MENU {
+    runMenu(); //inside this menu get_selected if any different menus have different navigations - not sure if that's the case? 
+    break();
+  }
+  CASE TIMER {//
+    isRunning(); //how to respond to buttons while timer is running
+    break();
+  }
+  CASE REVIEW {
+    reviewTimes();//how to respond to buttons while reviewing times
+    break;
+  }
+  ...
+  Case SETECHO {
+    settingEchoState();//how to respond to buttons while setting par state
+    break;
+  }
+}
+  
+
 
 //CONSIDER - BREAK THESE MANY BUTTON STATEMENTS INTO A SWITCH CASE BASED ON PROGRAM STATE
 //WITHIN EACH CASE HAVE A SINGLE BUTTON MANAGER FUNCTION FOR EACH STATE
@@ -1391,8 +1419,6 @@ void loop() {
 //MENU STATE SWITCH CASE WILL NEED TO ACCOMMODATE NON-MENU PROGRAM STATES - i.e: editingPar
 //OR - perhaps all these other actions can become dynamically generated menu items?
 //ONE PROGRAM STATE SWITCH CASE AND ONE MENU STATE SWITCH CASE??
-
-//uint8_t buttons = lcd.readButtons();
  
   if (buttons) {
     DEBUG_PRINT(F("ButtonOut: "));
