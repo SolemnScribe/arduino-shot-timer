@@ -225,6 +225,7 @@ Menu mainMenu(mainName);
 
 void renderMenu() {
   Menu const* menu = tm.get_current_menu();
+  lcd.setBacklight(WHITE);
   lcd.clear();
   lcd.setCursor(0, 0);
   lcdPrint_p(&lcd, menu->get_name()); // lcd.print(F("Shot Timer v.3"));
@@ -937,6 +938,7 @@ void editPar() {
   }
   else {
     DEBUG_PRINTLN(F("Return to SETPARTIMES"), 0);
+    lcd.setBacklight(WHITE);
     tm.select();
   }
 }
@@ -1308,6 +1310,7 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
         case BUTTON_RIGHT:
           DEBUG_PRINTLN(F("RIGHT/SELECT"), 0);
           tm.select();
+          if(currentState == MENU){renderMenu();}
           break;
         case BUTTON_LEFT:
           DEBUG_PRINTLN(F("LEFT/BACK"), 0);
@@ -1363,6 +1366,10 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
           DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
           tm.select();
           break;
+        case BUTTON_LEFT:
+          DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
+          tm.select(); //@TODO: Bug here
+          break;
         case BUTTON_DOWN:
           DEBUG_PRINTLN(F("DOWN/toggleParState()"), 0);
           toggleParState(); //@TODO<-- Maybe I should build a par times class with par state and array of part times - and have functions on the class 
@@ -1381,8 +1388,8 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
           editPar();
           break;
         case BUTTON_LEFT:
-          DEBUG_PRINTLN(F("LEFT/SELECT"), 0);
-          tm.select();
+          DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
+          tm.select(); //@TODO: Bug here
           break;
         case BUTTON_DOWN:
           DEBUG_PRINTLN(F("DOWN/parDown()"), 0);
@@ -1424,6 +1431,10 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
           DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
           tm.select();
           break;
+        case BUTTON_LEFT:
+          DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
+          tm.select(); //@TODO: Bug here
+          break;
         case BUTTON_DOWN:
           DEBUG_PRINTLN(F("DOWN/decreaseDelay()"), 0);
           decreaseDelay(); //@TODO<-- Maybe I should be building a shot string class, with functions, rather than using functions to operate on a global array. 
@@ -1439,6 +1450,10 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
         case BUTTON_SELECT:
           DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
           tm.select();
+          break;
+        case BUTTON_LEFT:
+          DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
+          tm.select(); //@TODO: Bug here
           break;
         case BUTTON_DOWN:
           DEBUG_PRINTLN(F("DOWN/decreaseBeepVol()"), 0);
@@ -1456,6 +1471,10 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
           DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
           tm.select();
           break;
+        case BUTTON_LEFT:
+          DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
+          tm.select(); //@TODO: Bug here
+          break;
         case BUTTON_DOWN:
           DEBUG_PRINTLN(F("DOWN/decreaseSensitivity())"), 0);
           decreaseSensitivity();
@@ -1471,6 +1490,10 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
         case BUTTON_SELECT:
           DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
           tm.select();
+          break;
+        case BUTTON_LEFT:
+          DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
+          tm.select(); //@TODO: Bug here
           break;
         case BUTTON_DOWN:
           DEBUG_PRINTLN(F("DOWN/decreaseEchoProtect();)"), 0);
