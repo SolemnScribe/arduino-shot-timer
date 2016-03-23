@@ -24,6 +24,8 @@
 // @TODO: Consider compatibility with MicroLCD for the 0.96" IC2 OLED
 // http://forum.arduino.cc/index.php?topic=105866.30
 //
+// @TODO: Figure out the processing/memory cost of the time display conversion
+//
 /////////////////////////////////
 
 //////////////
