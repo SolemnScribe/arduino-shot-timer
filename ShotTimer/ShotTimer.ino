@@ -1316,7 +1316,8 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
     case MENU:
       switch (newButton) {
         case BUTTON_SELECT:
-          const Menu* menu2 = tm.get_current_menu();
+          //const Menu* menu2 = tm.get_current_menu();
+          //Serial.println(tm.get_current_menu()->get_name());
           DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
           DEBUG_PRINTLN_P(tm.get_current_menu()->get_name(),0);
           //DEBUG_PRINTLN_P(menu2->get_name(),0);
@@ -1383,14 +1384,13 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
       switch (newButton) {
         case BUTTON_SELECT:
           DEBUG_PRINTLN(F("SELECT/(BACK)SELECT"), 0);
-          
+          DEBUG_PRINTLN_P(tm.get_current_menu()->get_name(),0);
           tm.select();
+          DEBUG_PRINTLN_P(tm.get_current_menu()->get_name(),0);
           break;
         case BUTTON_LEFT:
           DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
-          //tm.back(); // Back to menu item
-          //*pState = MENU;
-          tm.select(); //@TODO: Bug here
+          tm.select();
           break;
         case BUTTON_DOWN:
           DEBUG_PRINTLN(F("DOWN/toggleParState()"), 0);
