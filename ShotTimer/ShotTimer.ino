@@ -798,9 +798,12 @@ void sensToThreshold() {
 /////////////////////////////////////////////////////////////
 
 void on_menuParState_selected(MenuItem* p_menu_item) {
+  DEBUG_PRINT(F("State before select: ")); DEBUG_PRINTLN(currentState,0);
+  DEBUG_PRINTLN(tm.get_current_menu()->get_name(),0);
   if(currentState != SETPARSTATE){
     DEBUG_PRINTLN(F("Enter SETPARSTATE Mode"),0);
-    currentState == SETPARSTATE;
+    currentState = SETPARSTATE;
+    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(currentState,0);
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print(F("Par Times"));
@@ -815,6 +818,7 @@ void on_menuParState_selected(MenuItem* p_menu_item) {
   else {
     DEBUG_PRINTLN(F("Return to Menu"), 0);
     currentState = MENU;
+    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(currentState,0);
     renderMenu();
   }
 }
@@ -825,6 +829,7 @@ void on_menuParState_selected(MenuItem* p_menu_item) {
 
 void toggleParState() {
   parEnabled = !parEnabled;
+  DEBUG_PRINT(F("currentState: ")); DEBUG_PRINTLN(currentState,0);
   DEBUG_PRINT(F("Toggled Par to: "));DEBUG_PRINTLN(parEnabled, 0);
   lcd.setCursor(0, 1);
   if (parEnabled == false) {
@@ -840,9 +845,11 @@ void toggleParState() {
 /////////////////////////////////////////////////////////////
 
 void on_menuParTimes_selected(MenuItem* p_menu_item) {
+    DEBUG_PRINT(F("State before select: ")); DEBUG_PRINTLN(currentState,0);
   if(currentState != SETPARTIMES){
     DEBUG_PRINTLN(F("Enter SETPARTIMES Mode"), 0);
     currentState = SETPARTIMES;
+    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(currentState,0);
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print(F("<<"));
@@ -861,6 +868,7 @@ void on_menuParTimes_selected(MenuItem* p_menu_item) {
   }
   else {
     currentState = MENU;
+    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(currentState,0);
     renderMenu();
   }
 }
@@ -1183,7 +1191,8 @@ void eepromSetup() {
   // Because 255 is the default for unused EEPROM and not a valid value for Sample Window...
   // if ANY of our EEPROM stored settings come back 255, we'll know that the EEPROM settings have not been set
   // By checking all 4 settings, we help ensure that legacy EEPROM data doesn't slip in and cause unexpected behavior.
-  if (sampleSetting == 255 || sensSetting == 255 || beepSetting == 255 || delaySetting == 255) {
+    
+  if (sampleSetting & 255 || sensSetting & 255 || beepSetting & 255 || delaySetting & 255) {
     DEBUG_PRINTLN(F("Setting EEPROM"), 0);
     delaySetting = delayTime;
       DEBUG_PRINTLN(F("Set delaySetting to "), 0);
@@ -1223,30 +1232,30 @@ void eepromSetup() {
 
 void menuSetup()
 {
-  DEBUG_PRINTLN(F("Setting up menu:"),0);
-  DEBUG_PRINTLN_P(mainName,0);
+    DEBUG_PRINTLN(F("Setting up menu:"),0);
+    DEBUG_PRINTLN_P(mainName,0);
   mainMenu.add_item(&menuStart, &on_menuStart_selected);
-  DEBUG_PRINTLN_P(startName,0);
+    DEBUG_PRINTLN_P(startName,0);
   mainMenu.add_item(&menuReview, &on_menuReview_selected);
-  DEBUG_PRINTLN_P(reviewName,0);
+    DEBUG_PRINTLN_P(reviewName,0);
   mainMenu.add_menu(&parMenu);
-  DEBUG_PRINTLN_P(parName,0);
+    DEBUG_PRINTLN_P(parName,0);
     parMenu.add_item(&menuParState, &on_menuParState_selected);
-    DEBUG_PRINTLN_P(parSetName,0);
+      DEBUG_PRINTLN_P(parSetName,0);
     parMenu.add_item(&menuParTimes, &on_menuParTimes_selected);
-    DEBUG_PRINTLN_P(parTimesName,0);
+      DEBUG_PRINTLN_P(parTimesName,0);
   mainMenu.add_menu(&settingsMenu);
-  DEBUG_PRINTLN_P(settingsName,0);
+    DEBUG_PRINTLN_P(settingsName,0);
     settingsMenu.add_item(&menuStartDelay, &on_menuStartDelay_selected);
-    DEBUG_PRINTLN_P(setDelayName,0);
+      DEBUG_PRINTLN_P(setDelayName,0);
     settingsMenu.add_item(&menuBuzzer, &on_menuBuzzer_selected);
-    DEBUG_PRINTLN_P(buzzerName,0);
+      DEBUG_PRINTLN_P(buzzerName,0);
     settingsMenu.add_item(&menuSensitivity, &on_menuSensitivity_selected);
-    DEBUG_PRINTLN_P(sensitivityName,0);
+      DEBUG_PRINTLN_P(sensitivityName,0);
     settingsMenu.add_item(&menuEcho, &on_menuEcho_selected);
     DEBUG_PRINTLN_P(echoName,0);
   tm.set_root_menu(&mainMenu); 
-  DEBUG_PRINTLN(F("Menu Setup Complete"),0);
+    DEBUG_PRINTLN(F("Menu Setup Complete"),0);
 }
 
 //////////////////////////////////////////////////////////
@@ -1269,14 +1278,17 @@ void lcdSetup() {
 // returns true if the button state 
 //////////////
 void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* pState) {
-
+  //DEBUG_PRINT(F("pState: ")); DEBUG_PRINTLN(*pState,0);
+  //DEBUG_PRINT(F("currentState: ")); DEBUG_PRINTLN(currentState,0);
   /////////////////////////////
   // buttonStateManager
   /////////////////////////////
   //DEBUG_PRINTLN(F("Listening to button input"),0);
   uint8_t stateNow = lcd->readButtons();
+  //DEBUG_PRINT(F("stateNow: ")); DEBUG_PRINTLN(stateNow,0);
+  //DEBUG_PRINT(F("bState: ")); DEBUG_PRINTLN(*bState, 0);
   uint8_t newButton = stateNow & ~*bState; // if the current and the last state are different this is true
-  if (newButton) {DEBUG_PRINT(F("ButtonIn: "));}
+  if (newButton) {DEBUG_PRINT(F("Button Pushed: "));}
   *bState = stateNow;
   /////////////////////////////
 
@@ -1300,15 +1312,22 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
   // In fact - may pull that program state into an if, and put all the rest of the cases into the SWITCH. 
   // @TODO: MenuSystem doesn't loop? 
   
-  switch (currentState){
+  switch (*pState){
     case MENU:
       switch (newButton) {
         case BUTTON_SELECT:
+          const Menu* menu2 = tm.get_current_menu();
           DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
+          DEBUG_PRINTLN_P(tm.get_current_menu()->get_name(),0);
+          //DEBUG_PRINTLN_P(menu2->get_name(),0);
+          //DEBUG_PRINTLN_P(menu2->get_selected()->get_name(),0);
           tm.select();
+          if(currentState == MENU){renderMenu();}
           break;
         case BUTTON_RIGHT:
+          //Menu const* menu = tm.get_current_menu();
           DEBUG_PRINTLN(F("RIGHT/SELECT"), 0);
+          //DEBUG_PRINTLN(menu->get_name(),0);
           tm.select();
           if(currentState == MENU){renderMenu();}
           break;
@@ -1363,11 +1382,14 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
     case SETPARSTATE:
       switch (newButton) {
         case BUTTON_SELECT:
-          DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
+          DEBUG_PRINTLN(F("SELECT/(BACK)SELECT"), 0);
+          
           tm.select();
           break;
         case BUTTON_LEFT:
           DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
+          //tm.back(); // Back to menu item
+          //*pState = MENU;
           tm.select(); //@TODO: Bug here
           break;
         case BUTTON_DOWN:
