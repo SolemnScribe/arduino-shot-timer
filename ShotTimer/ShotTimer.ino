@@ -291,7 +291,7 @@ void on_menuStart_selected(MenuItem* p_menu_item) {
   lcd.print(F("                ")); // create a clearline function? Save fewer strings in progmem?
   startDelay();
   lcd.setCursor(0, 0);
-  lcd.print(F("      GO!!      "));
+  lcd.print(F(" GO!!  Shot#    ")); //lcd.setCursor(0, 13);
   lcd.setCursor(0, 1);
   lcd.print(F("Last:")); //10 chars
   BEEP();
@@ -376,6 +376,8 @@ void recordShot() {
   DEBUG_PRINT(F("\n"));
   //serialPrintln(shotTimer.elapsed());
   //serialPrintln(shotChrono.elapsed(), 9);
+  lcd.setCursor(13, 0);
+  lcdPrint(&lcd, currentShot + 1, 3);
   lcd.setCursor(6, 1);
   lcdPrintTime(&lcd, shotTimes[currentShot], 9); //lcd.print(F(" ")); if(currentShot > 1) {lcdPrintTime(&lcd, shotTimes[currentShot]-shotTimes[currentShot-1],6);}
   //9 characters             //1 characters                    //6 characters
