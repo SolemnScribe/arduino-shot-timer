@@ -136,7 +136,7 @@ const char PROGMEM sensitivityName[] = "<< [Sensitivity]";
 const char PROGMEM echoName[] = "<< [Echo Reject]";
 
 //////////////
-// Instantiation
+// Instantiation //@TODO: should maybe have a settings object and a timer object? 
 //////////////
 LightChrono shotChrono;
 
@@ -167,9 +167,9 @@ byte delayTime = 11;
 byte beepVol = 0;
 byte sensitivity = 1;
 byte sampleWindow = 50;
-unsigned long shotTimes[200]; // do we want to instantiate the size in setup()
-unsigned long parTimes[10]; // does this HAVE to be 10 for the par setting interface to work? Hardcoded?
-unsigned long additivePar;
+uint32_t shotTimes[200]; // do we want to instantiate the size in setup()
+uint32_t parTimes[10]; // does this HAVE to be 10 for the par setting interface to work? Hardcoded?
+uint32_t additivePar;
 byte currentShot; // REFACTOR, MAY NOT NEED TO BE GLOBAL
 byte reviewShot;  // REFACTOR, MAY NOT NEED TO BE GLOBAL
 byte currentPar;  // REFACTOR, MAY NOT NEED TO BE GLOBAL
@@ -241,7 +241,7 @@ void renderMenu() {
 // Sample Sound
 //////////////////////////////////////////////////////////
 int sampleSound() {
-  unsigned long startMillis = millis(); // Start of sample window --- the peak to peak reading
+  uint32_t startMillis = millis(); // Start of sample window --- the peak to peak reading
   // will be the total loudness change across the sample wiindow!
   int peakToPeak = 0; // peak-to-peak level
   int sample = 0;
@@ -1210,7 +1210,8 @@ void buttonTone() {
 
 /////////////////////////////////////////////////////////////
 // eepromSetup
-// Note - EEWrap automatically uses an .update() on EEPROM writes, to avoid wearing out the EEPROM if the value being set is the same as the existing value. 
+// Note - EEWrap automatically uses an .update() on EEPROM writes, 
+// to avoid wearing out the EEPROM if the value being set is the same as the existing value. 
 /////////////////////////////////////////////////////////////
 
 void eepromSetup() {
@@ -1220,8 +1221,9 @@ void eepromSetup() {
   // Because 255 is the default for unused EEPROM and not a valid value for Sample Window...
   // if ANY of our EEPROM stored settings come back 255, we'll know that the EEPROM settings have not been set
   // By checking all 4 settings, we help ensure that legacy EEPROM data doesn't slip in and cause unexpected behavior.
-    
-  if (sampleSetting == 255 || sensSetting == 255 || beepSetting == 255 || delaySetting == 255) {
+  byte unSet = 255;
+  
+  if (sampleSetting == unSet || sensSetting == unSet || beepSetting == unSet || delaySetting == unSet) {
     DEBUG_PRINTLN(F("Setting EEPROM"), 0);
     delaySetting = delayTime;
       DEBUG_PRINTLN(F("Set delaySetting to "), 0);
