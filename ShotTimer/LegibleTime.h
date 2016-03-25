@@ -28,13 +28,42 @@
 // Function to trim the array to the number of digits specified
 //http://stackoverflow.com/questions/12337836/shifting-elements-in-an-array-in-c-pointer-based
 // Alternate method to count digits: http://stackoverflow.com/questions/1489830/efficient-way-to-determine-number-of-digits-in-an-integer <-- COME BACK TO THIS ONE!
-void fitDigits(char *str, int digits) 
+// http://stackoverflow.com/questions/12692221/deleting-n-first-chars-from-c-string
+// http://forum.arduino.cc/index.php?topic=87303.0
+// http://forum.arduino.cc/index.php?topic=207965.0
+// http://stackoverflow.com/questions/1726298/strip-first-and-last-character-from-c-string
+
+//@TODO: fitDigits() 
+void fitDigits(char *str, int digits) //digits must include punctuation - format "00:00:00.000"
 {
-  int newIndex = strlen(str) - digits;
-  for (int i = 0; i != newIndex - 1; i++) 
+  size_t len = strlen(str);
+  //assert(len >= 2); // or whatever you want to do with short strings
+  memmove(str, str+(len-digits), len-1);
+  str[len-1] = 0;
+  //int newIndex = strlen(str) - digits;
+  //for (int i = 0; i != newIndex - 1; i++) 
+  //{
+  //  *(str+i) = *(str+i+2);
+  //}
+}
+
+void convertNum(uint32_t num, byte digits, char* str) //formerly called print2digits: http://arduino.cc/forum/index.php?topic=64024.30
+{
+  DEBUG_PRINTLN(F("Making this num legible:"),0);
+  DEBUG_PRINTLN(num,0);
+  strcpy(str,"000000000000"); //pre-set -- should this go in PROGMEM? Experiment later - A: Probably not - I'm going to manipulate it quite a bit every time this is called. It will wind up in memory as STR anyway
+  
+  for (char i = 11; i >= 1; i--) //i starts at the array index of the smallest digit in the substring, and ends of at the array index of the largest digit in the substring
   {
-    *(str+i) = *(str+i+1);
+    int digit = num % 10;
+    str[i] = '0' + digit;
+    num /= 10;
   }
+  DEBUG_PRINTLN(str, 0);
+  DEBUG_PRINT(F("Stripping digits to: ")); DEBUG_PRINTLN(digits,0);
+  fitDigits(str, digits);
+  DEBUG_PRINTLN(str, 0);
+  DEBUG_PRINTLN(F("Done Converting Num"), 0);
 }
 
 /////////////////////////////////////////////////////////////
@@ -68,7 +97,6 @@ void convertTime(uint32_t te, byte digits, char* str) //formerly called print2di
     tx /= 10;
   }
   te %= hdiv; // or if modulo does not work: tx -= x * hdiv;
-  DEBUG_PRINTLN(str, 0);
 
   // MINUTES
   tx = te / mdiv;
@@ -79,7 +107,6 @@ void convertTime(uint32_t te, byte digits, char* str) //formerly called print2di
     tx /= 10;
   }
   te %= mdiv;
-  DEBUG_PRINTLN(str, 0);
 
   // SECONDS
   tx = te / sdiv;
@@ -90,7 +117,6 @@ void convertTime(uint32_t te, byte digits, char* str) //formerly called print2di
     tx /= 10;
   }
   te %= sdiv;
-  DEBUG_PRINTLN(str, 0);
 
   //MILLISECONDS
   tx = te;

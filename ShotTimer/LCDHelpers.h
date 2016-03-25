@@ -68,8 +68,8 @@ void lcdPrint_p(Adafruit_RGBLCDShield* lcd, const char * str)
 void lcdPrint(Adafruit_RGBLCDShield* lcd, uint32_t t, byte digits)
 {
   DEBUG_PRINT(F("Printing to LCD:"));
-  char lcdOutput[11];
-  fitDigits(lcdOutput, digits);
+  char lcdOutput[11]; //@TODO: we need a function that takes our number input and converts to a printable string of the specified digits. A simpler convertTime
+  convertNum(t, digits, lcdOutput);
   DEBUG_PRINTLN(lcdOutput,0);
   lcd->print(lcdOutput);
 }
