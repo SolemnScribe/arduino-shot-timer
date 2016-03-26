@@ -448,7 +448,7 @@ void nextShot() {
   lcd.print(F("Shot #"));
   if (currentShot == 0 || reviewShot == currentShot - 1) {
     reviewShot = 0;
-    lcd.print(reviewShot);
+    lcd.print(reviewShot + 1);
   }
   else {
     reviewShot++;
