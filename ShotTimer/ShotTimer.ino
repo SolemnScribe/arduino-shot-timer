@@ -134,7 +134,8 @@ const char PROGMEM setDelayName[] = "<< [Set Delay] ";
 const char PROGMEM buzzerName[] = "<< [Buzzr Vol]";
 const char PROGMEM sensitivityName[] = "<< [Sensitivity]";
 const char PROGMEM echoName[] = "<< [Echo Reject]";
-
+const int PROGMEM parLimit = 10;
+const int PROGMEM shotLimit = 200;
 //////////////
 // Instantiation //@TODO: should maybe have a settings object and a timer object? 
 //////////////
@@ -160,6 +161,7 @@ uint8_e sampleSetting; //Cannot be 0  //  ECHO REJECT: Sample window width in mS
 // If one of the values is set to 0/null that is not allowed to be set to 0/null than the EEPROM should be updated to the default values. 
 // Or alternately - if all 4 values are set to 0/null than the EEPROM clearly hasn't been set. 
 
+
 /////////////////////////////////////////
 // GLOBAL VARIABLES
 /////////////////////////////////////////
@@ -167,8 +169,8 @@ byte delayTime = 11;
 byte beepVol = 0;
 byte sensitivity = 1;
 byte sampleWindow = 50;
-uint32_t shotTimes[200]; // do we want to instantiate the size in setup()
-uint32_t parTimes[10]; // does this HAVE to be 10 for the par setting interface to work? Hardcoded?
+uint32_t shotTimes[shotLimit]; // do we want to instantiate the size in setup()
+unsigned long parTimes[parLimit]; // does this HAVE to be 10 for the par setting interface to work? Hardcoded?
 uint32_t additivePar;
 byte currentShot; // REFACTOR, MAY NOT NEED TO BE GLOBAL
 byte reviewShot;  // REFACTOR, MAY NOT NEED TO BE GLOBAL
@@ -322,7 +324,7 @@ void parBeeps(boolean* parState)
     if (*parState == true) {
       DEBUG_PRINTLN(F("...check for par beep..."),0)
       additivePar = 0;
-      for (byte i = 0; i < sizeof(parTimes); i++) {
+      for (byte i = 0; i < parLimit; i++) {
         if (parTimes[i] == 0) {
           break;
         }
@@ -382,7 +384,7 @@ void recordShot() {
   lcdPrintTime(&lcd, shotTimes[currentShot], 9); //lcd.print(F(" ")); if(currentShot > 1) {lcdPrintTime(&lcd, shotTimes[currentShot]-shotTimes[currentShot-1],6);}
   //9 characters             //1 characters                    //6 characters
   currentShot += 1;
-  if (currentShot == sizeof(shotTimes)) { // if the current shot == 100 (1 more than the length of the array)
+  if (currentShot == shotLimit) { // if the current shot == 100 (1 more than the length of the array)
     DEBUG_PRINTLN(F("Out of room for shots"),0);
     stopTimer(1);
   }
@@ -898,7 +900,7 @@ void on_menuParTimes_selected(MenuItem* p_menu_item) {
 void parUp() {
   DEBUG_PRINTLN(F("parUp()"), 0);
   if (currentPar == 0) {
-    currentPar = sizeof(parTimes) - 1;
+    currentPar = parLimit - 1;
   }
   else {
     currentPar--;
@@ -923,7 +925,8 @@ void parUp() {
 
 void parDown() {
   DEBUG_PRINTLN(F("parDown()"), 1);
-  if (currentPar == sizeof(parTimes) - 1) {
+  DEBUG_PRINTLN(parLimit,0);
+  if (currentPar == parLimit - 1) {
     currentPar = 0;
   }
   else {
