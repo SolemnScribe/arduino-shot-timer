@@ -3,21 +3,21 @@
 // Author: hestenet
 // Canonical Repository: https://github.com/hestenet/arduino-shot-timer
 /////////////////////////////////
-//   This file is part of ShotTimer. 
+//  This file is part of ShotTimer. 
 //
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU Lesser General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
+//  This program is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU Lesser General Public License as published by
+//  the Free Software Foundation, either version 3 of the License, or
+//  (at your option) any later version.
 //
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU Lesser General Public License for more details.
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU Lesser General Public License for more details.
 //
-//    You should have received a copy of the GNU Lesser General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//    http://www.gnu.org/licenses/lgpl.txt
+//  You should have received a copy of the GNU Lesser General Public License
+//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//  http://www.gnu.org/licenses/lgpl.txt
 //
 /////////////////////////////////
 
@@ -32,14 +32,17 @@
 /////////////////////////////////////////
 // Current Flaws:
 // shotListener(); probably could be redesigned to run on a timer interupt.
-// as a result, the parTimes beep may come as early or late as half the sample window time.
-// However, at most reasonable sampleWindows this will likely be indistinguishable to the user
+// as a result, the parTimes beep may come as early or late as half the sample 
+// window time. However, at most reasonable sampleWindows this will likely be 
+// indistinguishable to the user
 //
-// ParTimes are not saved to EEPROM, as their frequent updating is more likely to burn out the chip
+// ParTimes are not saved to EEPROM, as their frequent updating is more likely 
+// to burn out the chip.
 //
 // I would like to add SD card support to save the strings
 //
-// I would like to add course scoring of some kind, and maybe even shooter profiles, but the arduino Uno is likely not powerful enough for this.
+// I would like to add course scoring of some kind, and maybe even shooter 
+// profiles, but the arduino Uno is likely not powerful enough for this.
 //////////////////////////////////////////
 
 //////////////////////////////////////////
@@ -49,24 +52,30 @@
 //////////////
 //DEBUG
 //////////////
-//#define DEBUG  //comment this out to disable debug information and remove all DEBUG messages at compile time
+// #define DEBUG  //comment this out to disable debug information and remove all
+// DEBUG messages at compile time
 #include "DebugMacros.h"
 
 //////////////
 // Libraries - Core
-// These are libraries shipped with Arduino, or that can be installed from the "Manage Libraries" interface of the Arduino IDE
+// These are libraries shipped with Arduino, or that can be installed from the 
+// "Manage Libraries" interface of the Arduino IDE
 // Sketch -> Include Libraries -> Manage Librariess
 //////////////
 
 //PROGMEM aka FLASH memory, non-volatile
 #include <avr/pgmspace.h>
-//PGMWrap makes it easier to interact with PROGMEM - declare data types with _p e.g: char_p
+
+// PGMWrap makes it easier to use PROGMEM - declare vars with _p e.g: char_p
 #include <PGMWrap.h>
 
-//EEPROM additional non-volatile space 
+// EEPROM additional non-volatile space 
 #include <EEPROM.h>
-//EEWrap allows you to read/write from EEPROM without special functions and without directly specifying EEPROM address space. 
-#include <EEWrap.h> // the .update() method allows you to only update EEPROM if values have changed. 
+
+// EEWrap allows you to read/write from EEPROM without special functions and 
+// without directly specifying EEPROM address space. 
+#include <EEWrap.h> // the .update() method allows you to only update EEPROM if 
+                    // values have changed. 
 
 //Wire library lets you manage I2C and 2 pin
 #include <Wire.h>
@@ -74,7 +83,7 @@
 //Chrono - LightChrono - chronometer - to replace StopWatch
 #include <LightChrono.h>
 
-//MenuSystem  //NOTE: Version 2.0.2 recommended - the 2.1.0 release breaks this code! Not yet sure why. 
+//MenuSystem  
 #include <MenuSystem.h>
 
 //Adafruit RGB LCD Shield Library
@@ -83,26 +92,29 @@
 
 //////////////
 // Libraries - Other
-// These are libraries that cannot be found in the defauilt Arduino library manager - however, they can be added manually.
-// A source url for each library is provided - simply download the library and include in:
+// These are libraries that cannot be found in the defauilt Arduino library 
+// manager - however, they can be added manually. A source url for each library 
+// is provided - simply download the library and include in:
 // ~/Documents/Arduino/Libraries
 //////////////
 
-//toneAC
-//Bit-Bang tone library for piezo buzzer https://bitbucket.org/teckel12/arduino-toneac/wiki/Home#!difference-between-toneac-and-toneac2
+// toneAC
+// Bit-Bang tone library for piezo buzzer 
+// https://bitbucket.org/teckel12/arduino-toneac/wiki/Home#!difference-between-toneac-and-toneac2
 #include <toneAC.h>
 
 //////////////
 // Other helpful resources
 //////////////
-// Adafruit sound level sampling: http://learn.adafruit.com/adafruit-microphone-amplifier-breakout/measuring-sound-levels
+// Adafruit sound level sampling: 
+// http://learn.adafruit.com/adafruit-microphone-amplifier-breakout/measuring-sound-levels
 // http://stackoverflow.com/questions/18903528/permanently-changing-value-of-parameter
 //////////////
 // Libraries - Mine
 //////////////
 
 //Tones for buttons and buzzer
-#include "Pitches.h" // musical pitches - optional - format: NOTE_C4 | This include makes no difference to program or dynamic memory
+#include "Pitches.h" // musical pitches - optional - format: NOTE_C4 
 //Convert time in ms elapsed to hh:mm:ss.mss
 #include "LegibleTime.h"
 //Helper functions for managing the LCD Display
@@ -112,7 +124,8 @@
 //////////////
 // CONSTANTS
 //////////////
-const uint8_p PROGMEM micPin = A0; //set the input for the mic/amplifier // the mic/amp is connected to analog pin 0
+const uint8_p PROGMEM micPin = A0;  //set the input for the mic/amplifier 
+                                    // the mic/amp is connected to analog pin 0
 const uint8_p PROGMEM buttonVol = 5;
 const uint8_p PROGMEM buttonDur = 80;
 const int16_p PROGMEM beepDur = 400;
@@ -120,9 +133,10 @@ const int16_p PROGMEM beepNote = NOTE_C4;
 //////////////
 // PROGMEM
 //////////////
-//Menu Names - format: const char Name[] PROGMEM = ""; <---- this doesn't work with menuBackEnd and I don't know why.
-//To read these - increment over the array - https://github.com/Chris--A/PGMWrap/blob/master/examples/advanced/use_within_classes/use_within_classes.ino 
-//More detailed example of dealing with strings and arrays in PROGMEM http://www.gammon.com.au/progmem
+// To read these - increment over the array: 
+// https://github.com/Chris--A/PGMWrap/blob/master/examples/advanced/use_within_classes/use_within_classes.ino 
+// More detailed example of dealing with strings and arrays in PROGMEM:
+// http://www.gammon.com.au/progmem
 const char PROGMEM mainName[] = "Shot Timer v.3";
 const char PROGMEM startName[] = "[Start]";
 const char PROGMEM reviewName[] = "[Review]";
@@ -137,7 +151,7 @@ const char PROGMEM echoName[] = "<< [Echo Reject]";
 const int PROGMEM parLimit = 10;
 const int PROGMEM shotLimit = 200;
 //////////////
-// Instantiation //@TODO: should maybe have a settings object and a timer object? 
+// Instantiation //@TODO: should maybe have a settings object and timer object? 
 //////////////
 LightChrono shotChrono;
 
@@ -155,12 +169,9 @@ Adafruit_RGBLCDShield lcd = Adafruit_RGBLCDShield();
 uint8_e delaySetting;  // Can be 0
 uint8_e beepSetting;  // Can be 0
 uint8_e sensSetting;  // Can be 0
-uint8_e sampleSetting; //Cannot be 0  //  ECHO REJECT: Sample window width in mS (50 mS = 20Hz) for function sampleSound()
-// Global variables stoired in EEProm can not be initialized
-// The solution is to declare them uninitialized and then call a setup function based on an if condition...
-// If one of the values is set to 0/null that is not allowed to be set to 0/null than the EEPROM should be updated to the default values. 
-// Or alternately - if all 4 values are set to 0/null than the EEPROM clearly hasn't been set. 
-
+uint8_e sampleSetting; //Cannot be 0  
+// ECHO REJECT: Sample window width in mS (50 mS = 20Hz) for function 
+// sampleSound()
 
 /////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -170,12 +181,12 @@ byte beepVol = 0;
 byte sensitivity = 1;
 byte sampleWindow = 50;
 uint32_t shotTimes[shotLimit]; // do we want to instantiate the size in setup()
-unsigned long parTimes[parLimit]; // does this HAVE to be 10 for the par setting interface to work? Hardcoded?
+unsigned long parTimes[parLimit]; 
 uint32_t additivePar;
 byte currentShot; // REFACTOR, MAY NOT NEED TO BE GLOBAL
 byte reviewShot;  // REFACTOR, MAY NOT NEED TO BE GLOBAL
 byte currentPar;  // REFACTOR, MAY NOT NEED TO BE GLOBAL
-int threshold = 625; //The sensitivity setting is converted into a threshold value
+int threshold = 625; // The sensitivity is converted to a threshold value
 byte parCursor = 1;
 
 ///////////////
@@ -217,7 +228,8 @@ Menu mainMenu(mainName);
 //////////////
 // FUNCTIONS
 //////////////
-// Note: Any functions with reference parameters i.e myFunction(char &str); must be prototyped manually
+// Note: Any functions with reference parameters i.e myFunction(char &str); 
+// must be prototyped manually
 // A prototype is simply an empty declaration
 //////////////
 
@@ -243,8 +255,9 @@ void renderMenu() {
 // Sample Sound
 //////////////////////////////////////////////////////////
 int sampleSound() {
-  uint32_t startMillis = millis(); // Start of sample window --- the peak to peak reading
-  // will be the total loudness change across the sample wiindow!
+  uint32_t startMillis = millis();  // Start of sample window 
+  // the peak to peak reading will be the total loudness change across the 
+  // sample wiindow!
   int peakToPeak = 0; // peak-to-peak level
   int sample = 0;
   int signalMax = 0;
@@ -275,22 +288,26 @@ int sampleSound() {
 //////////////////////////////////////////////////////////
 // Start the Shot Timer
 //////////////////////////////////////////////////////////
-// Consider changing these to be 'on_menu_event()' functions - such that they can have a local variable for whether the menu item is active, rather than using a global. 
+// Consider changing these to be 'on_menu_event()' functions - such that they 
+// can have a local variable for whether the menu item is active, rather than 
+// using a global. 
 //////////////////////////////////////////////////////////
 
 void on_menuStart_selected(MenuItem* p_menu_item) {
   DEBUG_PRINTLN(F("Starting Timer"),1);
   currentState = TIMER;
   lcd.setBacklight(GREEN);
-  //shotTimer.restart(); //reset the timer to 0
-  for (int c = 0; c < currentShot; c++) { // reset the values of the array of shots to 0 NOT <= because currentShot is incremented at the end of the last one recorded
+  // reset the values of the array of shots to 0 NOT <= because currentShot is 
+  // incremented at the end of the last one recorded
+  for (int c = 0; c < currentShot; c++) { 
     shotTimes[c] = 0;
   }
   currentShot = 0; //start with the first shot in the array
   lcd.setCursor(0, 0);
   lcd.print(F("Wait for it...  "));
   lcd.setCursor(0, 1);
-  lcd.print(F("                ")); // create a clearline function? Save fewer strings in progmem?
+  lcd.print(F("                ")); // create a clearline function? 
+                                    // Save fewer strings in progmem?
   startDelay();
   lcd.setCursor(0, 0);
   lcd.print(F(" GO!!  Shot#    ")); //lcd.setCursor(0, 13);
@@ -304,8 +321,9 @@ void on_menuStart_selected(MenuItem* p_menu_item) {
 // Run the shot timer - runs in loop()
 //////////////////////////////////////////////////////////
 
-void runTimer(programState* pState, boolean* parState) // @TODO: Decide if passing in current state as an argument or just accessing as a global variable!
-{
+// @TODO: Decide if passing in current state as an argument or just accessing as
+// a global variable!
+void runTimer(programState* pState, boolean* parState) {
   //DEBUG_PRINTLN(*runState, 0);
   if (*pState == TIMER)
   { 
@@ -329,11 +347,15 @@ void parBeeps(boolean* parState)
           break;
         }
         additivePar += parTimes[i]; // add the parTimes together
-        //if (shotTimer.elapsed() <= (additivePar + (sampleWindow / 2)) && shotTimer.elapsed() >= (additivePar - sampleWindow / 2)){
+        //if (shotTimer.elapsed() <= (additivePar + (sampleWindow / 2)) 
+        //&& shotTimer.elapsed() >= (additivePar - sampleWindow / 2)){
         int timeElapsed = shotChrono.elapsed();
-        if (timeElapsed <= (additivePar + (sampleWindow / 2)) && timeElapsed >= (additivePar - sampleWindow / 2)) {
+        // Beep if the current time matches the parTime
+        // (within the boundaries of sample window) 
+        if (timeElapsed <= (additivePar + (sampleWindow / 2)) 
+          && timeElapsed >= (additivePar - sampleWindow / 2)) {
           DEBUG_PRINTLN(F("PAR BEEP!"),0);
-          BEEP();  //Beep if the current time matches (within the boundaries of sample window) the parTime
+          BEEP();  
         }
       }
 
@@ -345,14 +367,12 @@ void parBeeps(boolean* parState)
 //////////////////////////////////////////////////////////
 void stopTimer(boolean out = 0) {
   DEBUG_PRINTLN(F("Stopping Timer"),0);
-  //currentState = REVIEW;
   if (out == 1) {
     lcd.setBacklight(RED);
   }
   else {
     lcd.setBacklight(WHITE);
   }
-  //shotTimer.stop();
   DEBUG_PRINTLN(F("Timer was stopped at:"), 0);
   shotChrono.elapsed(); // for DEBUG
   for (int i = 0; i < 5; i++) {
@@ -363,8 +383,8 @@ void stopTimer(boolean out = 0) {
     lcd.setBacklight(WHITE);
   }
   // Also - transition menus and re-render menu screens in the stop condition. 
-  tm.next(); //move the menu down to review mode
-  tm.select(); //move into shot review mode immediately
+  tm.next(); // move the menu down to review mode
+  tm.select(); // move into shot review mode immediately
 }
 
 //////////////////////////////////////////////////////////
@@ -372,19 +392,17 @@ void stopTimer(boolean out = 0) {
 //////////////////////////////////////////////////////////
 
 void recordShot() {
-  //shotTimes[currentShot] = shotTimer.elapsed();
   shotTimes[currentShot] = shotChrono.elapsed();
-  DEBUG_PRINT(F("Shot #")); DEBUG_PRINT(currentShot + 1); DEBUG_PRINT(F(" - "));// serialPrintln(shotTimes[currentShot], 9);
+  DEBUG_PRINT(F("Shot #")); DEBUG_PRINT(currentShot + 1); DEBUG_PRINT(F(" - "));
   DEBUG_PRINT(F("\n"));
   //serialPrintln(shotTimer.elapsed());
   //serialPrintln(shotChrono.elapsed(), 9);
   lcd.setCursor(13, 0);
   lcdPrint(&lcd, currentShot + 1, 3);
   lcd.setCursor(6, 1);
-  lcdPrintTime(&lcd, shotTimes[currentShot], 9); //lcd.print(F(" ")); if(currentShot > 1) {lcdPrintTime(&lcd, shotTimes[currentShot]-shotTimes[currentShot-1],6);}
-  //9 characters             //1 characters                    //6 characters
+  lcdPrintTime(&lcd, shotTimes[currentShot], 9); 
   currentShot += 1;
-  if (currentShot == shotLimit) { // if the current shot == 100 (1 more than the length of the array)
+  if (currentShot == shotLimit) { 
     DEBUG_PRINTLN(F("Out of room for shots"),0);
     stopTimer(1);
   }
@@ -428,7 +446,6 @@ void on_menuReview_selected(MenuItem* p_menu_item) {
       lcdPrintTime(&lcd, shotTimes[reviewShot] - shotTimes[reviewShot - 1], 6);
     }
     DEBUG_PRINTLN(tm.get_current_menu()->get_name(),0);
-    //9 characters             //1 characters                    //6 characters
   } else {
     DEBUG_PRINTLN(F("Return to Menu"), 0);
     DEBUG_PRINTLN(currentState, 0);
@@ -641,8 +658,7 @@ void on_menuBuzzer_selected(MenuItem* p_menu_item) {
     lcd.setCursor(0, 0);
     lcd.print(F("Buzzer Volume"));
     lcd.setCursor(0, 1);
-    lcd.print(beepVol);
-    //lcdPrint(&lcd, beepVol, 2);
+    lcdPrint(&lcd, beepVol, 2);
   }
   else {
     DEBUG_PRINTLN(F("Save BeepVol and Return to Menu"), 0);
@@ -665,9 +681,9 @@ void increaseBeepVol() {
     beepVol++;
   }
   lcd.setCursor(0, 1);
-  lcd.print(beepVol);
-  //lcdPrint(&lcd, beepVol, 2);
-  lcd.print(F("                ")); //TODO REplace with a single PROGMEM clear buffer
+  lcdPrint(&lcd, beepVol, 2);
+  //@TODO REplace with a single PROGMEM clear buffer
+  lcd.print(F("                ")); /
 }
 
 /////////////////////////////////////////////////////////////
@@ -683,8 +699,7 @@ void decreaseBeepVol() {
     beepVol--;
   }
   lcd.setCursor(0, 1);
-  lcd.print(beepVol);
-  //lcdPrint(&lcd, beepVol, 2);
+  lcdPrint(&lcd, beepVol, 2);
   lcd.print(F("                "));
 }
 
@@ -700,8 +715,7 @@ void on_menuSensitivity_selected(MenuItem* p_menu_item) {
     lcd.setCursor(0, 0);
     lcd.print(F("Sensitivity"));
     lcd.setCursor(0, 1);
-    lcd.print(sensitivity);
-    //lcdPrint(&lcd, sensitivity, 2);
+    lcdPrint(&lcd, sensitivity, 2);
   }
   else {
     DEBUG_PRINTLN(F("Save Sensitivity and Return to Menu"), 0);
@@ -725,8 +739,7 @@ void increaseSensitivity() {
   }
   sensToThreshold();
   lcd.setCursor(0, 1);
-  lcd.print(sensitivity);
-  //lcdPrint(&lcd, sensitivity, 2);
+  lcdPrint(&lcd, sensitivity, 2);
   lcd.print(F("                "));
 }
 
@@ -744,8 +757,7 @@ void decreaseSensitivity() {
   }
   sensToThreshold();
   lcd.setCursor(0, 1);
-  lcd.print(sensitivity);
-  //lcdPrint(&lcd, sensitivity, 2);
+  lcdPrint(&lcd, sensitivity, 2);
   lcd.print(F("                "));
 }
 
@@ -878,7 +890,6 @@ void on_menuParTimes_selected(MenuItem* p_menu_item) {
     lcd.setCursor(5, 0);
     lcd.print(F("Par"));
     lcd.setCursor(9, 0);
-    //lcd.print(currentPar + 1);
     lcdPrint(&lcd, (currentPar + 1), 2);
     lcd.setCursor(4, 1);
     if (currentPar > 0) {
@@ -887,7 +898,6 @@ void on_menuParTimes_selected(MenuItem* p_menu_item) {
     else {
       lcd.print(F(" "));
     }
-    //lcd.print(parTimes[currentPar]);
     lcdPrintTime(&lcd, parTimes[currentPar], 9);
     DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
   }
@@ -911,7 +921,6 @@ void parUp() {
     currentPar--;
   }
   lcd.setCursor(9, 0);
-  //lcd.print(currentPar + 1); lcd.print(" ");
   lcdPrint(&lcd, (currentPar + 1), 2);
   lcd.setCursor(4, 1);
   if (currentPar > 0) {
@@ -938,7 +947,6 @@ void parDown() {
     currentPar++;
   }
   lcd.setCursor(9, 0);
-  //lcd.print(currentPar + 1);
   lcdPrint(&lcd, (currentPar + 1), 2);
   lcd.setCursor(4, 1);
   if (currentPar > 0) {
@@ -947,7 +955,6 @@ void parDown() {
   else {
     lcd.print(F(" "));
   }
-  //DEBUG_PRINTLN(F("FreeRam()"), 1);
   lcdPrintTime(&lcd, parTimes[currentPar], 9);
   DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
 }
@@ -965,7 +972,6 @@ void editPar() {
     lcd.print(F("Edit        "));
     lcd.setCursor(0, 1);
     lcd.print(F("P"));
-    //lcd.print(currentPar + 1);
     lcdPrint(&lcd, currentPar + 1, 2);
     if (currentPar > 0) {
       lcd.print(F(" +"));
@@ -983,7 +989,6 @@ void editPar() {
     Serial.print(currentState);
     DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
     lcd.setBacklight(WHITE);
-    //on_menuParTimes_selected(&menuParTimes);
     tm.select();
   }
 }
@@ -1212,26 +1217,28 @@ void buttonTone() {
   toneAC(beepNote, buttonVol, buttonDur, true);
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
 // SETUP FUNCTIONS
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////
 // eepromSetup
 // Note - EEWrap automatically uses an .update() on EEPROM writes, 
-// to avoid wearing out the EEPROM if the value being set is the same as the existing value. 
+// to avoid wearing out the EEPROM if the value being set is the same as 
+// the existing value. 
 /////////////////////////////////////////////////////////////
 
 void eepromSetup() {
   DEBUG_PRINTLN(F("Checking if EEPROM needs to be set..."), 0);
-
-  // Use settings values from EEPROM only if the if non-null values have been set
-  // Because 255 is the default for unused EEPROM and not a valid value for Sample Window...
-  // if ANY of our EEPROM stored settings come back 255, we'll know that the EEPROM settings have not been set
-  // By checking all 4 settings, we help ensure that legacy EEPROM data doesn't slip in and cause unexpected behavior.
+  // Unset EEPROM values are set to 255, NOT 0
+  // if ANY of our EEPROM stored settings come back 255, we'll know that the 
+  // EEPROM settings have not been set
+  // By checking all 4 settings, we help ensure that legacy EEPROM data doesn't
+  // slip in and cause unexpected behavior.
   byte unSet = 255;
   
-  if (sampleSetting == unSet || sensSetting == unSet || beepSetting == unSet || delaySetting == unSet) {
+  if (sampleSetting == unSet || sensSetting == unSet 
+    || beepSetting == unSet || delaySetting == unSet) {
     DEBUG_PRINTLN(F("Setting EEPROM"), 0);
     delaySetting = delayTime;
       DEBUG_PRINTLN(F("Set delaySetting to "), 0);
@@ -1261,7 +1268,7 @@ void eepromSetup() {
       DEBUG_PRINTLN(F("Set sampleWindow to "), 0);
       DEBUG_PRINTLN(sampleWindow, 0);
   }
-  sensToThreshold(); //make sure that the Threshold is calculated based on the stored sensitivity setting
+  sensToThreshold(); 
 }
 
 
@@ -1308,15 +1315,16 @@ void lcdSetup() {
   renderMenu();
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
 // Listeners
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
 
 //////////////
 // Button Listener
 // returns true if the button state 
 //////////////
-void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* pState) {
+void buttonListener(Adafruit_RGBLCDShield* lcd, 
+                    uint8_t* bState, programState* pState) {
   //DEBUG_PRINT(F("pState: ")); DEBUG_PRINTLN(*pState,0);
   //DEBUG_PRINT(F("currentState: ")); DEBUG_PRINTLN(currentState,0);
   /////////////////////////////
@@ -1326,7 +1334,7 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
   uint8_t stateNow = lcd->readButtons();
   //DEBUG_PRINT(F("stateNow: ")); DEBUG_PRINTLN(stateNow,0);
   //DEBUG_PRINT(F("bState: ")); DEBUG_PRINTLN(*bState, 0);
-  uint8_t newButton = stateNow & ~*bState; // if the current and the last state are different this is true
+  uint8_t newButton = stateNow & ~*bState; // true if stateNow != bState
   if (newButton) {DEBUG_PRINT(F("Button Pushed: "));}
   *bState = stateNow;
   /////////////////////////////
@@ -1334,23 +1342,6 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
   /////////////////////////////
   // buttonReactor
   /////////////////////////////
-  //PSEUDOCODE
-  // buttonListener listens for input
-  // check(currentState) 
-  // reactToButtons(currentState); <-- simplify to just reactToButtons?
-  // while reacting to buttons
-  //  // switch currentState
-  //  // change what buttons do per state
-  //  // OR
-  //  // For each button
-  //  // decide what to do by default
-  //  // override if it changes based on currentState
-  // SWITCH CASES ARE BETTER FOR MAINTAINABILITY, BUT LIKELY SLOWER
-  // http://blog.kriegsman.org/2013/12/01/optimizing-10-lines-of-arduino-code-youre-wrong-so-am-i/
-  // This may be important - ESPECIALLY for the case of making sure the TIMER runs efficiently. 
-  // In fact - may pull that program state into an if, and put all the rest of the cases into the SWITCH. 
-  // @TODO: MenuSystem doesn't loop? 
-  
   switch (*pState){
     case MENU:
       switch (newButton) {
@@ -1411,7 +1402,9 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
           break;
         case BUTTON_DOWN:
           DEBUG_PRINTLN(F("DOWN/nextShot()"), 0);
-          nextShot(); //@TODO<-- Maybe I should be building a shot string class, with functions, rather than using functions to operate on a global array. 
+          nextShot(); 
+          //@TODO<-- Maybe I should be building a shot string class, with 
+          //functions, rather than using functions to operate on a global array. 
           break;
         case BUTTON_UP:
           DEBUG_PRINTLN(F("UP/previousShot()"), 0);
@@ -1433,8 +1426,11 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
           break;
         case BUTTON_DOWN:
           DEBUG_PRINTLN(F("DOWN/toggleParState()"), 0);
-          toggleParState(); //@TODO<-- Maybe I should build a par times class with par state and array of part times - and have functions on the class 
-                            // if function names of all objects I manipulate with my buttons are the same and on the same buttons - could use polymorphism? 
+          toggleParState(); 
+          // @TODO<-- Maybe I should build a par times class with par state and 
+          // array of part times - and have functions on the class if function 
+          // names of all objects I manipulate with my buttons are the same and 
+          // on the same buttons - could use polymorphism? 
           break;
         case BUTTON_UP:
           DEBUG_PRINTLN(F("UP/toggleParState()"), 0);
@@ -1457,7 +1453,7 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
         case BUTTON_DOWN:
           DEBUG_PRINTLN(F("DOWN/parDown()"), 0);
           DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
-          parDown(); //@TODO<-- Maybe I should be building a shot string class, with functions, rather than using functions to operate on a global array. 
+          parDown(); 
           break;
         case BUTTON_UP:
           DEBUG_PRINTLN(F("UP/parUp()"), 0);
@@ -1502,7 +1498,7 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
           break;
         case BUTTON_DOWN:
           DEBUG_PRINTLN(F("DOWN/decreaseDelay()"), 0);
-          decreaseDelay(); //@TODO<-- Maybe I should be building a shot string class, with functions, rather than using functions to operate on a global array. 
+          decreaseDelay(); 
           break;
         case BUTTON_UP:
           DEBUG_PRINTLN(F("UP/increaseDelay()"), 0);
@@ -1518,7 +1514,7 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
           break;
         case BUTTON_LEFT:
           DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
-          tm.select(); //@TODO: Bug here
+          tm.select(); 
           break;
         case BUTTON_DOWN:
           DEBUG_PRINTLN(F("DOWN/decreaseBeepVol()"), 0);
@@ -1538,7 +1534,7 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
           break;
         case BUTTON_LEFT:
           DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
-          tm.select(); //@TODO: Bug here
+          tm.select();
           break;
         case BUTTON_DOWN:
           DEBUG_PRINTLN(F("DOWN/decreaseSensitivity())"), 0);
@@ -1558,7 +1554,7 @@ void buttonListener(Adafruit_RGBLCDShield* lcd, uint8_t* bState, programState* p
           break;
         case BUTTON_LEFT:
           DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
-          tm.select(); //@TODO: Bug here
+          tm.select();
           break;
         case BUTTON_DOWN:
           DEBUG_PRINTLN(F("DOWN/decreaseEchoProtect();)"), 0);
@@ -1585,9 +1581,9 @@ void shotListener() {
   //DEBUG_PRINTLN(F("Listen-end:"),0);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//SETUP AND LOOP
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+// SETUP AND LOOP
+//////////////////////////////////////////////////////////
 
 //////////////
 // SETUP
@@ -1607,6 +1603,7 @@ void setup() {
 //////////////
 
 void loop() {
-  buttonListener(&lcd, &buttonsState, &currentState); //Possibly all button actions should come before runTimer()
+  //Probably all button actions should come before runTimer()
+  buttonListener(&lcd, &buttonsState, &currentState); 
   runTimer(&currentState, &parEnabled); 
 } 
