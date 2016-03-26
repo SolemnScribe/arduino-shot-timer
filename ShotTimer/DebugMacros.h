@@ -90,24 +90,24 @@
     #define DEBUG_SETUP()                               \
       Serial.begin(9600);                               \
       DEBUG_PRINTLN(F("DEBUG is enabled."),0);          \
-      DEBUG_PRINTLN(F("Comment out DEBUG and recompile
-                       to free PROGMEM and SRAM."),0);  \ 
+      DEBUG_PRINT(F("Comment out DEBUG and recompile"); \
+      DEBUG_PRINTLN(F("to free PROGMEM and SRAM."),0);  \
     #define DEBUG_PRINT(str)                            \
       Serial.print(str);
     #define DEBUG_PRINTLN(str, bl)                      \
       if (bl > 0)                                       \
       {                                                 \
-      serialPrint_p(kMillisStr);                         \
+      serialPrint_p(kMillisStr);                        \
       Serial.print(millis());                           \
-      serialPrint_p(kBytesStr);                          \
+      serialPrint_p(kBytesStr);                         \
       Serial.print(FREE_RAM());                         \
-      serialPrint_p(kColStr);                            \
+      serialPrint_p(kColStr);                           \
       Serial.print(__PRETTY_FUNCTION__);                \
-      serialPrint_p(kSpaceStr);                          \
+      serialPrint_p(kSpaceStr);                         \
       Serial.print(__FILE__);                           \
-      serialPrint_p(kColStr);                            \
+      serialPrint_p(kColStr);                           \
       Serial.print(__LINE__);                           \
-      serialPrint_p(kSpaceStr);                          \
+      serialPrint_p(kSpaceStr);                         \
       }                                                 \
       Serial.println(str);
     #define DEBUG_PRINT_P(str)                          \
@@ -115,17 +115,17 @@
     #define DEBUG_PRINTLN_P(str, bl)                    \
       if (bl > 0)                                       \
       {                                                 \
-      serialPrint_p(kMillisStr);                         \
+      serialPrint_p(kMillisStr);                        \
       Serial.print(millis());                           \
-      serialPrint_p(kBytesStr);                          \
+      serialPrint_p(kBytesStr);                         \
       Serial.print(FREE_RAM());                         \
-      serialPrint_p(kColStr);                            \
+      serialPrint_p(kColStr);                           \
       Serial.print(__PRETTY_FUNCTION__);                \
-      serialPrint_p(kSpaceStr);                          \
+      serialPrint_p(kSpaceStr);                         \
       Serial.print(__FILE__);                           \
-      serialPrint_p(kColStr);                            \
+      serialPrint_p(kColStr);                           \
       Serial.print(__LINE__);                           \
-      serialPrint_p(kSpaceStr);                          \
+      serialPrint_p(kSpaceStr);                         \
       }                                                 \
       serialPrintln_p(str);
     

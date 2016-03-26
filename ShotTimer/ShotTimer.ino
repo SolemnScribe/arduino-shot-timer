@@ -131,6 +131,7 @@ const uint8_p PROGMEM kMicPin = A0; //set the input for the mic/amplifier
 const uint8_p PROGMEM kButtonDur = 80;
 const int16_p PROGMEM kBeepDur = 400;
 const int16_p PROGMEM kBeepNote = NOTE_C4;
+
 //////////////
 // PROGMEM
 //////////////
@@ -151,10 +152,11 @@ const char PROGMEM kSensitivityName[] = "<< [Sensitivity]";
 const char PROGMEM kEchoName[] = "<< [Echo Reject]";
 const int PROGMEM kParLimit = 10;
 const int PROGMEM kShotLimit = 200;
+
 //////////////
 // Instantiation //@TODO: should maybe have a settings object and timer object? 
 //////////////
-LightChrono shotChrono;
+LightChrono shot_chrono;
 
 // The shield uses the I2C SCL and SDA pins. On classic Arduinos
 // this is Analog 4 and 5 so you can't use those for analogRead() anymore
@@ -167,10 +169,10 @@ Adafruit_RGBLCDShield lcd = Adafruit_RGBLCDShield();
 ////////////////////////////////////////
 // EEPROM HAS 100,000 READ/WRITE CYCLES, conservatively
 // http://tronixstuff.wordpress.com/2011/05/11/discovering-arduinos-internal-eeprom-lifespan/
-uint8_e delaySetting;  // Can be 0
-uint8_e beepSetting;  // Can be 0
-uint8_e sensSetting;  // Can be 0
-uint8_e sampleSetting; //Cannot be 0  
+uint8_e g_delay_setting_e;  // Can be 0
+uint8_e g_beep_setting_e;  // Can be 0
+uint8_e g_sens_setting_e;  // Can be 0
+uint8_e g_sample_setting_e; //Cannot be 0  
 // ECHO REJECT: Sample window width in mS (50 mS = 20Hz) for function 
 // sampleSound()
 
@@ -194,20 +196,20 @@ byte parCursor = 1;
 // Program State Variables
 ///////////////
 // http://stackoverflow.com/questions/18903528/permanently-changing-value-of-parameter
-uint8_t buttonsState;
-boolean parEnabled;
+uint8_t g_buttons_state;
+boolean g_par_enabled;
 enum ProgramState {
   MENU,         // Navigating menus
-  TIMER,       // Timer is running // && parEnabled
+  TIMER,       // Timer is running // && g_par_enabled
   REVIEW,       // 2 - Reviewing shots 
-  SETPARSTATE,  // 3 - Setting Par State // && parEnabled
+  SETPARSTATE,  // 3 - Setting Par State // && g_par_enabled
   SETPARTIMES,  // 4 - Setting Par Times
   SETINDPAR,    // 5 - ?? Editing Par // Setting Single Par
   SETDELAY,     // 6 - Setting Delay
   SETBEEP,      // 7 - Setting Beep
   SETSENS,      // 8 - Setting Sensitivity 
   SETECHO       // 9 - Setting Echo
- } currentState; 
+ } g_current_state; 
 
 //////////////
 //Menus and Menu Items
@@ -296,7 +298,7 @@ int sampleSound() {
 
 void on_menuStart_selected(MenuItem* p_menu_item) {
   DEBUG_PRINTLN(F("Starting Timer"),1);
-  currentState = TIMER;
+  g_current_state = TIMER;
   lcd.setBacklight(GREEN);
   // reset the values of the array of shots to 0 NOT <= because currentShot is 
   // incremented at the end of the last one recorded
@@ -315,7 +317,7 @@ void on_menuStart_selected(MenuItem* p_menu_item) {
   lcd.setCursor(0, 1);
   lcd.print(F("Last:")); //10 chars
   BEEP();
-  shotChrono.restart();
+  shot_chrono.restart();
 }
 
 //////////////////////////////////////////////////////////
@@ -350,7 +352,7 @@ void parBeeps(boolean* parState)
         additivePar += parTimes[i]; // add the parTimes together
         //if (shotTimer.elapsed() <= (additivePar + (sampleWindow / 2)) 
         //&& shotTimer.elapsed() >= (additivePar - sampleWindow / 2)){
-        int timeElapsed = shotChrono.elapsed();
+        int timeElapsed = shot_chrono.elapsed();
         // Beep if the current time matches the parTime
         // (within the boundaries of sample window) 
         if (timeElapsed <= (additivePar + (sampleWindow / 2)) 
@@ -375,7 +377,7 @@ void stopTimer(boolean out = 0) {
     lcd.setBacklight(WHITE);
   }
   DEBUG_PRINTLN(F("Timer was stopped at:"), 0);
-  shotChrono.elapsed(); // for DEBUG
+  shot_chrono.elapsed(); // for DEBUG
   for (int i = 0; i < 5; i++) {
     toneAC(kBeepNote, beepVol, 100, false); 
     delay(50);
@@ -393,11 +395,11 @@ void stopTimer(boolean out = 0) {
 //////////////////////////////////////////////////////////
 
 void recordShot() {
-  shotTimes[currentShot] = shotChrono.elapsed();
+  shotTimes[currentShot] = shot_chrono.elapsed();
   DEBUG_PRINT(F("Shot #")); DEBUG_PRINT(currentShot + 1); DEBUG_PRINT(F(" - "));
   DEBUG_PRINT(F("\n"));
   //serialPrintln(shotTimer.elapsed());
-  //serialPrintln(shotChrono.elapsed(), 9);
+  //serialPrintln(shot_chrono.elapsed(), 9);
   lcd.setCursor(13, 0);
   lcdPrint(&lcd, currentShot + 1, 3);
   lcd.setCursor(6, 1);
@@ -414,11 +416,11 @@ void recordShot() {
 //////////////////////////////////////////////////////////
 
 void on_menuReview_selected(MenuItem* p_menu_item) {
-  if(currentState != REVIEW){
+  if(g_current_state != REVIEW){
     DEBUG_PRINTLN(F("Enter REVIEW Mode"), 0);
-    DEBUG_PRINTLN(currentState, 0);
-    currentState = REVIEW;
-    DEBUG_PRINTLN(currentState, 0);
+    DEBUG_PRINTLN(g_current_state, 0);
+    g_current_state = REVIEW;
+    DEBUG_PRINTLN(g_current_state, 0);
     if (currentShot > 0) {
       reviewShot = currentShot - 1;
     }
@@ -449,8 +451,8 @@ void on_menuReview_selected(MenuItem* p_menu_item) {
     DEBUG_PRINTLN(tm.get_current_menu()->get_name(),0);
   } else {
     DEBUG_PRINTLN(F("Return to Menu"), 0);
-    DEBUG_PRINTLN(currentState, 0);
-    currentState = MENU;
+    DEBUG_PRINTLN(g_current_state, 0);
+    g_current_state = MENU;
     renderMenu();
   }
 }
@@ -461,7 +463,7 @@ void on_menuReview_selected(MenuItem* p_menu_item) {
 
 void nextShot() {
   DEBUG_PRINTLN(F("nextShot()"), 0);
-  DEBUG_PRINTLN(currentState, 0);
+  DEBUG_PRINTLN(g_current_state, 0);
   lcd.setCursor(0, 0);
   lcd.print(F("Shot #"));
   if (currentShot == 0 || reviewShot == currentShot - 1) {
@@ -492,7 +494,7 @@ void nextShot() {
 
 void previousShot() {
   DEBUG_PRINTLN(F("previousShot()"), 0);
-  DEBUG_PRINTLN(currentState, 0);
+  DEBUG_PRINTLN(g_current_state, 0);
   lcd.setCursor(0, 0);
   lcd.print(F("Shot #"));
   if (currentShot == 0) {
@@ -526,7 +528,7 @@ void previousShot() {
 //////////////////////////////////////////////////////////
 
 void rateOfFire(boolean includeDraw = true) {
-  DEBUG_PRINTLN(currentState, 0);
+  DEBUG_PRINTLN(g_current_state, 0);
   DEBUG_PRINTLN(F("rateofFire()"), 0);
   unsigned int rof;
   if (!includeDraw) {
@@ -555,9 +557,9 @@ void rateOfFire(boolean includeDraw = true) {
 /////////////////////////////////////////////////////////////
 
 void on_menuStartDelay_selected(MenuItem* p_menu_item) {
-  if(currentState != SETDELAY){
+  if(g_current_state != SETDELAY){
     DEBUG_PRINTLN(F("Enter SETDELAY Mode"), 0);
-    currentState = SETDELAY;
+    g_current_state = SETDELAY;
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print(F("Start Delay"));
@@ -574,8 +576,8 @@ void on_menuStartDelay_selected(MenuItem* p_menu_item) {
   }
   else {
     DEBUG_PRINTLN(F("Save Delay and Return to Menu"), 0);
-    delaySetting = delayTime;
-    currentState = MENU;
+    g_delay_setting_e = delayTime;
+    g_current_state = MENU;
     renderMenu();
   }
 }
@@ -652,9 +654,9 @@ void startDelay() {
 /////////////////////////////////////////////////////////////
 
 void on_menuBuzzer_selected(MenuItem* p_menu_item) {
-  if(currentState != SETBEEP){
+  if(g_current_state != SETBEEP){
     DEBUG_PRINTLN(F("Enter SETBEEP Mode"), 0);
-    currentState = SETBEEP;
+    g_current_state = SETBEEP;
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print(F("Buzzer Volume"));
@@ -663,8 +665,8 @@ void on_menuBuzzer_selected(MenuItem* p_menu_item) {
   }
   else {
     DEBUG_PRINTLN(F("Save BeepVol and Return to Menu"), 0);
-    beepSetting = beepVol;
-    currentState = MENU;
+    g_beep_setting_e = beepVol;
+    g_current_state = MENU;
     renderMenu();
   }
 }
@@ -684,7 +686,7 @@ void increaseBeepVol() {
   lcd.setCursor(0, 1);
   lcdPrint(&lcd, beepVol, 2);
   //@TODO REplace with a single PROGMEM clear buffer
-  lcd.print(F("                ")); /
+  lcd.print(F("                "));
 }
 
 /////////////////////////////////////////////////////////////
@@ -709,9 +711,9 @@ void decreaseBeepVol() {
 /////////////////////////////////////////////////////////////
 
 void on_menuSensitivity_selected(MenuItem* p_menu_item) {
-    if(currentState != SETSENS){
+    if(g_current_state != SETSENS){
     DEBUG_PRINTLN(F("Enter SETSENS Mode"), 0);
-    currentState = SETSENS;
+    g_current_state = SETSENS;
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print(F("Sensitivity"));
@@ -720,8 +722,8 @@ void on_menuSensitivity_selected(MenuItem* p_menu_item) {
   }
   else {
     DEBUG_PRINTLN(F("Save Sensitivity and Return to Menu"), 0);
-    sensSetting = sensitivity;
-    currentState = MENU;
+    g_sens_setting_e = sensitivity;
+    g_current_state = MENU;
     renderMenu();
   }
 }
@@ -767,9 +769,9 @@ void decreaseSensitivity() {
 /////////////////////////////////////////////////////////////
 
 void on_menuEcho_selected(MenuItem* p_menu_item) {
-  if(currentState != SETECHO){
+  if(g_current_state != SETECHO){
     DEBUG_PRINTLN(F("Enter SETECHO Mode"), 0);
-    currentState = SETECHO;
+    g_current_state = SETECHO;
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print(F("Echo Protect"));
@@ -779,8 +781,8 @@ void on_menuEcho_selected(MenuItem* p_menu_item) {
   }
   else {
     DEBUG_PRINTLN(F("Save Echo and Return to Menu"), 0);
-    sampleSetting = sampleWindow;
-    currentState = MENU;
+    g_sample_setting_e = sampleWindow;
+    g_current_state = MENU;
     renderMenu();
   }
 }
@@ -832,17 +834,17 @@ void sensToThreshold() {
 /////////////////////////////////////////////////////////////
 
 void on_menuParState_selected(MenuItem* p_menu_item) {
-  DEBUG_PRINT(F("State before select: ")); DEBUG_PRINTLN(currentState,0);
+  DEBUG_PRINT(F("State before select: ")); DEBUG_PRINTLN(g_current_state,0);
   DEBUG_PRINTLN(tm.get_current_menu()->get_name(),0);
-  if(currentState != SETPARSTATE){
+  if(g_current_state != SETPARSTATE){
     DEBUG_PRINTLN(F("Enter SETPARSTATE Mode"),0);
-    currentState = SETPARSTATE;
-    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(currentState,0);
+    g_current_state = SETPARSTATE;
+    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(g_current_state,0);
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print(F("Par Times"));
     lcd.setCursor(0, 1);
-    if (parEnabled == false) {
+    if (g_par_enabled == false) {
       lcd.print(F("[DISABLED]"));
     }
     else {
@@ -851,8 +853,8 @@ void on_menuParState_selected(MenuItem* p_menu_item) {
   }
   else {
     DEBUG_PRINTLN(F("Return to Menu"), 0);
-    currentState = MENU;
-    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(currentState,0);
+    g_current_state = MENU;
+    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(g_current_state,0);
     renderMenu();
   }
 }
@@ -862,11 +864,11 @@ void on_menuParState_selected(MenuItem* p_menu_item) {
 /////////////////////////////////////////////////////////////
 
 void toggleParState() {
-  parEnabled = !parEnabled;
-  DEBUG_PRINT(F("currentState: ")); DEBUG_PRINTLN(currentState,0);
-  DEBUG_PRINT(F("Toggled Par to: "));DEBUG_PRINTLN(parEnabled, 0);
+  g_par_enabled = !g_par_enabled;
+  DEBUG_PRINT(F("g_current_state: ")); DEBUG_PRINTLN(g_current_state,0);
+  DEBUG_PRINT(F("Toggled Par to: "));DEBUG_PRINTLN(g_par_enabled, 0);
   lcd.setCursor(0, 1);
-  if (parEnabled == false) {
+  if (g_par_enabled == false) {
     lcd.print(F("[DISABLED]")); //10 characters
   }
   else {
@@ -880,11 +882,11 @@ void toggleParState() {
 
 void on_menuParTimes_selected(MenuItem* p_menu_item) {
     DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
-    DEBUG_PRINT(F("State before select: ")); DEBUG_PRINTLN(currentState,0);
-  if(currentState != SETPARTIMES){
+    DEBUG_PRINT(F("State before select: ")); DEBUG_PRINTLN(g_current_state,0);
+  if(g_current_state != SETPARTIMES){
     DEBUG_PRINTLN(F("Enter SETPARTIMES Mode"), 0);
-    currentState = SETPARTIMES;
-    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(currentState,0);
+    g_current_state = SETPARTIMES;
+    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(g_current_state,0);
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print(F("<<"));
@@ -903,8 +905,8 @@ void on_menuParTimes_selected(MenuItem* p_menu_item) {
     DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
   }
   else {
-    currentState = MENU;
-    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(currentState,0);
+    g_current_state = MENU;
+    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(g_current_state,0);
     renderMenu();
   }
 }
@@ -965,9 +967,9 @@ void parDown() {
 /////////////////////////////////////////////////////////////
 
 void editPar() {
-  if(currentState != SETINDPAR){
+  if(g_current_state != SETINDPAR){
     DEBUG_PRINTLN(F("Enter SETINDPAR Mode"), 0);
-    currentState = SETINDPAR;
+    g_current_state = SETINDPAR;
     lcd.setBacklight(GREEN);
     lcd.setCursor(0, 0);
     lcd.print(F("Edit        "));
@@ -987,7 +989,7 @@ void editPar() {
   }
   else {
     DEBUG_PRINTLN(F("Return to SETPARTIMES"), 0);
-    Serial.print(currentState);
+    Serial.print(g_current_state);
     DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
     lcd.setBacklight(WHITE);
     tm.select();
@@ -1238,34 +1240,34 @@ void eepromSetup() {
   // slip in and cause unexpected behavior.
   byte unSet = 255;
   
-  if (sampleSetting == unSet || sensSetting == unSet 
-    || beepSetting == unSet || delaySetting == unSet) {
+  if (g_sample_setting_e == unSet || g_sens_setting_e == unSet 
+    || g_beep_setting_e == unSet || g_delay_setting_e == unSet) {
     DEBUG_PRINTLN(F("Setting EEPROM"), 0);
-    delaySetting = delayTime;
-      DEBUG_PRINTLN(F("Set delaySetting to "), 0);
+    g_delay_setting_e = delayTime;
+      DEBUG_PRINTLN(F("Set g_delay_setting_e to "), 0);
       DEBUG_PRINTLN(delayTime, 0);
-    beepSetting = beepVol;
-      DEBUG_PRINTLN(F("Set beepSetting to "), 0);
+    g_beep_setting_e = beepVol;
+      DEBUG_PRINTLN(F("Set g_beep_setting_e to "), 0);
       DEBUG_PRINTLN(beepVol, 0);
-    sensSetting = sensitivity;
-      DEBUG_PRINTLN(F("Set sensSetting to "), 0);
+    g_sens_setting_e = sensitivity;
+      DEBUG_PRINTLN(F("Set g_sens_setting_e to "), 0);
       DEBUG_PRINTLN(sensitivity, 0);
-    sampleSetting = sampleWindow;
-      DEBUG_PRINTLN(F("Set sampleSetting to "), 0);
+    g_sample_setting_e = sampleWindow;
+      DEBUG_PRINTLN(F("Set g_sample_setting_e to "), 0);
       DEBUG_PRINTLN(sampleWindow, 0);
   }
   else {
     DEBUG_PRINTLN(F("Reading settings from EEPROM"), 0);
-    delayTime = delaySetting;
+    delayTime = g_delay_setting_e;
       DEBUG_PRINTLN(F("Set delayTime to "), 0);
       DEBUG_PRINTLN(delayTime, 0);
-    beepVol = beepSetting;
+    beepVol = g_beep_setting_e;
       DEBUG_PRINTLN(F("Set beepVol to "), 0);
       DEBUG_PRINTLN(beepVol, 0);
-    sensitivity = sensSetting;
+    sensitivity = g_sens_setting_e;
       DEBUG_PRINTLN(F("Set sensitivity to "), 0);
       DEBUG_PRINTLN(sensitivity, 0);
-    sampleWindow = sampleSetting;
+    sampleWindow = g_sample_setting_e;
       DEBUG_PRINTLN(F("Set sampleWindow to "), 0);
       DEBUG_PRINTLN(sampleWindow, 0);
   }
@@ -1327,7 +1329,7 @@ void lcdSetup() {
 void buttonListener(Adafruit_RGBLCDShield* lcd, 
                     uint8_t* bState, ProgramState* pState) {
   //DEBUG_PRINT(F("pState: ")); DEBUG_PRINTLN(*pState,0);
-  //DEBUG_PRINT(F("currentState: ")); DEBUG_PRINTLN(currentState,0);
+  //DEBUG_PRINT(F("g_current_state: ")); DEBUG_PRINTLN(g_current_state,0);
   /////////////////////////////
   // buttonStateManager
   /////////////////////////////
@@ -1350,12 +1352,12 @@ void buttonListener(Adafruit_RGBLCDShield* lcd,
           DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
           DEBUG_PRINTLN_P(tm.get_current_menu()->get_name(),0);
           tm.select();
-          if(currentState == MENU){renderMenu();}
+          if(g_current_state == MENU){renderMenu();}
           break;
         case BUTTON_RIGHT:
           DEBUG_PRINTLN(F("RIGHT/SELECT"), 0);
           tm.select();
-          if(currentState == MENU){renderMenu();}
+          if(g_current_state == MENU){renderMenu();}
           break;
         case BUTTON_LEFT:
           DEBUG_PRINTLN(F("LEFT/BACK"), 0);
@@ -1591,6 +1593,6 @@ void setup() {
 
 void loop() {
   //Probably all button actions should come before runTimer()
-  buttonListener(&lcd, &buttonsState, &currentState); 
-  runTimer(&currentState, &parEnabled); 
+  buttonListener(&lcd, &buttonsState, &g_current_state); 
+  runTimer(&g_current_state, &g_par_enabled); 
 } 
