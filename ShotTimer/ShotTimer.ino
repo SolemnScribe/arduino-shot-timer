@@ -55,7 +55,7 @@
 //////////////
 // Libraries - Core
 // These are libraries shipped with Arduino, or that can be installed from the "Manage Libraries" interface of the Arduino IDE
-// Sketch -> Include Libraries -> Manage Libraries
+// Sketch -> Include Libraries -> Manage Librariess
 //////////////
 
 //PROGMEM aka FLASH memory, non-volatile
@@ -421,6 +421,9 @@ void on_menuReview_selected(MenuItem* p_menu_item) {
     lcd.setCursor(0, 1);
     lcdPrintTime(&lcd, shotTimes[reviewShot], 9);
     lcd.print(F(" "));
+    if (reviewShot == 0) {
+      lcd.print(F("   1st"));
+    }
     if (reviewShot > 1) {
       lcdPrintTime(&lcd, shotTimes[reviewShot] - shotTimes[reviewShot - 1], 6);
     }
@@ -441,15 +444,16 @@ void on_menuReview_selected(MenuItem* p_menu_item) {
 void nextShot() {
   DEBUG_PRINTLN(F("nextShot()"), 0);
   DEBUG_PRINTLN(currentState, 0);
+  lcd.setCursor(0, 0);
+  lcd.print(F("Shot #"));
   if (currentShot == 0 || reviewShot == currentShot - 1) {
     reviewShot = 0;
+    lcd.print(reviewShot);
   }
   else {
     reviewShot++;
+    lcd.print(reviewShot + 1);
   }
-  lcd.setCursor(0, 0);
-  lcd.print(F("Shot #"));
-  lcd.print(reviewShot + 1);
   lcd.print(F("                "));
   lcd.setCursor(9, 0);
   lcd.print(F(" Split "));
@@ -471,19 +475,20 @@ void nextShot() {
 void previousShot() {
   DEBUG_PRINTLN(F("previousShot()"), 0);
   DEBUG_PRINTLN(currentState, 0);
+  lcd.setCursor(0, 0);
+  lcd.print(F("Shot #"));
   if (currentShot == 0) {
     reviewShot = 0;
+    lcd.print(reviewShot);
   }
   else if (reviewShot == 0) {
     reviewShot = currentShot - 1;
+    lcd.print(reviewShot + 1);
   }
   else {
     reviewShot--;
+    lcd.print(reviewShot + 1);
   }
-
-  lcd.setCursor(0, 0);
-  lcd.print(F("Shot #"));
-  lcd.print(reviewShot + 1);
   lcd.print(F("                "));
   lcd.setCursor(9, 0);
   lcd.print(F(" Split "));
