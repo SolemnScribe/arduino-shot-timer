@@ -50,17 +50,19 @@
 //////////////////////////////////////////
 
 //////////////
-//DEBUG
+// DEBUG
 //////////////
-// #define DEBUG  //comment this out to disable debug information and remove all
+
+// Comment this out to disable debug information and remove all
 // DEBUG messages at compile time
+// #define DEBUG  
 #include "DebugMacros.h"
 
 //////////////
 // Libraries - Core
 // These are libraries shipped with Arduino, or that can be installed from the 
-// "Manage Libraries" interface of the Arduino IDE
-// Sketch -> Include Libraries -> Manage Librariess
+// "Manage Libraries" interface of the Arduino IDE:
+//            Sketch -> Include Libraries -> Manage Librariess
 //////////////
 
 //PROGMEM aka FLASH memory, non-volatile
@@ -124,12 +126,11 @@
 //////////////
 // CONSTANTS
 //////////////
-const uint8_p PROGMEM micPin = A0;  //set the input for the mic/amplifier 
+const uint8_p PROGMEM kMicPin = A0; //set the input for the mic/amplifier 
                                     // the mic/amp is connected to analog pin 0
-const uint8_p PROGMEM buttonVol = 5;
-const uint8_p PROGMEM buttonDur = 80;
-const int16_p PROGMEM beepDur = 400;
-const int16_p PROGMEM beepNote = NOTE_C4;
+const uint8_p PROGMEM kButtonDur = 80;
+const int16_p PROGMEM kBeepDur = 400;
+const int16_p PROGMEM kBeepNote = NOTE_C4;
 //////////////
 // PROGMEM
 //////////////
@@ -137,19 +138,19 @@ const int16_p PROGMEM beepNote = NOTE_C4;
 // https://github.com/Chris--A/PGMWrap/blob/master/examples/advanced/use_within_classes/use_within_classes.ino 
 // More detailed example of dealing with strings and arrays in PROGMEM:
 // http://www.gammon.com.au/progmem
-const char PROGMEM mainName[] = "Shot Timer v.3";
-const char PROGMEM startName[] = "[Start]";
-const char PROGMEM reviewName[] = "[Review]";
-const char PROGMEM parName[] = "Set Par >>";
-const char PROGMEM parSetName[] = "<< [Toggle Par]";
-const char PROGMEM parTimesName[] = "<< [Par Times]";
-const char PROGMEM settingsName[] = "Settings >>";
-const char PROGMEM setDelayName[] = "<< [Set Delay] ";
-const char PROGMEM buzzerName[] = "<< [Buzzr Vol]";
-const char PROGMEM sensitivityName[] = "<< [Sensitivity]";
-const char PROGMEM echoName[] = "<< [Echo Reject]";
-const int PROGMEM parLimit = 10;
-const int PROGMEM shotLimit = 200;
+const char PROGMEM kMainName[] = "Shot Timer v.3";
+const char PROGMEM kStartName[] = "[Start]";
+const char PROGMEM kReviewName[] = "[Review]";
+const char PROGMEM kParName[] = "Set Par >>";
+const char PROGMEM kParSetName[] = "<< [Toggle Par]";
+const char PROGMEM kParTimesName[] = "<< [Par Times]";
+const char PROGMEM kSettingsName[] = "Settings >>";
+const char PROGMEM kSetDelayName[] = "<< [Set Delay] ";
+const char PROGMEM kBuzzerName[] = "<< [Buzzr Vol]";
+const char PROGMEM kSensitivityName[] = "<< [Sensitivity]";
+const char PROGMEM kEchoName[] = "<< [Echo Reject]";
+const int PROGMEM kParLimit = 10;
+const int PROGMEM kShotLimit = 200;
 //////////////
 // Instantiation //@TODO: should maybe have a settings object and timer object? 
 //////////////
@@ -180,8 +181,8 @@ byte delayTime = 11;
 byte beepVol = 0;
 byte sensitivity = 1;
 byte sampleWindow = 50;
-uint32_t shotTimes[shotLimit]; // do we want to instantiate the size in setup()
-unsigned long parTimes[parLimit]; 
+uint32_t shotTimes[kShotLimit]; // do we want to instantiate the size in setup()
+unsigned long parTimes[kParLimit]; 
 uint32_t additivePar;
 byte currentShot; // REFACTOR, MAY NOT NEED TO BE GLOBAL
 byte reviewShot;  // REFACTOR, MAY NOT NEED TO BE GLOBAL
@@ -195,7 +196,7 @@ byte parCursor = 1;
 // http://stackoverflow.com/questions/18903528/permanently-changing-value-of-parameter
 uint8_t buttonsState;
 boolean parEnabled;
-enum programState {
+enum ProgramState {
   MENU,         // Navigating menus
   TIMER,       // Timer is running // && parEnabled
   REVIEW,       // 2 - Reviewing shots 
@@ -213,17 +214,17 @@ enum programState {
 //////////////
 
 MenuSystem tm;
-Menu mainMenu(mainName);
-  MenuItem menuStart(startName);
-  MenuItem menuReview(reviewName);
-  Menu parMenu(parName);
-    MenuItem menuParState(parSetName);
-    MenuItem menuParTimes(parTimesName);
-  Menu settingsMenu(settingsName);
-    MenuItem menuStartDelay(setDelayName);
-    MenuItem menuBuzzer(buzzerName);
-    MenuItem menuSensitivity(sensitivityName);
-    MenuItem menuEcho(echoName);
+Menu mainMenu(kMainName);
+  MenuItem menuStart(kStartName);
+  MenuItem menuReview(kReviewName);
+  Menu parMenu(kParName);
+    MenuItem menuParState(kParSetName);
+    MenuItem menuParTimes(kParTimesName);
+  Menu settingsMenu(kSettingsName);
+    MenuItem menuStartDelay(kSetDelayName);
+    MenuItem menuBuzzer(kBuzzerName);
+    MenuItem menuSensitivity(kSensitivityName);
+    MenuItem menuEcho(kEchoName);
 
 //////////////
 // FUNCTIONS
@@ -238,17 +239,17 @@ Menu mainMenu(mainName);
 //////////////////////////////////////////////////////////
 
 void renderMenu() {
-  Menu const* menu = tm.get_current_menu();
+  Menu const* kMenu = tm.get_current_menu();
   lcd.setBacklight(WHITE);
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcdPrint_p(&lcd, menu->get_name()); // lcd.print(F("Shot Timer v.3"));
+  lcdPrint_p(&lcd, kMenu->get_name()); // lcd.print(F("Shot Timer v.3"));
   DEBUG_PRINT(F("Rendering Menu: "));
-  DEBUG_PRINTLN_P(menu->get_name(),0);
+  DEBUG_PRINTLN_P(kMenu->get_name(),0);
   lcd.setCursor(0, 1);
-  lcdPrint_p(&lcd, menu->get_selected()->get_name());
+  lcdPrint_p(&lcd, kMenu->get_selected()->get_name());
   DEBUG_PRINT(F("Rendering Item: "));
-  DEBUG_PRINTLN_P(menu->get_selected()->get_name(),0);
+  DEBUG_PRINTLN_P(kMenu->get_selected()->get_name(),0);
 }
 
 //////////////////////////////////////////////////////////
@@ -266,7 +267,7 @@ int sampleSound() {
   // collect data for duration of sampleWindow
   while (millis() - startMillis < sampleWindow)
   {
-    sample = analogRead(micPin);
+    sample = analogRead(kMicPin);
     if (sample < 1024) // toss out spurious readings
     {
       if (sample > signalMax)
@@ -323,7 +324,7 @@ void on_menuStart_selected(MenuItem* p_menu_item) {
 
 // @TODO: Decide if passing in current state as an argument or just accessing as
 // a global variable!
-void runTimer(programState* pState, boolean* parState) {
+void runTimer(ProgramState* pState, boolean* parState) {
   //DEBUG_PRINTLN(*runState, 0);
   if (*pState == TIMER)
   { 
@@ -342,7 +343,7 @@ void parBeeps(boolean* parState)
     if (*parState == true) {
       DEBUG_PRINTLN(F("...check for par beep..."),0)
       additivePar = 0;
-      for (byte i = 0; i < parLimit; i++) {
+      for (byte i = 0; i < kParLimit; i++) {
         if (parTimes[i] == 0) {
           break;
         }
@@ -376,7 +377,7 @@ void stopTimer(boolean out = 0) {
   DEBUG_PRINTLN(F("Timer was stopped at:"), 0);
   shotChrono.elapsed(); // for DEBUG
   for (int i = 0; i < 5; i++) {
-    toneAC(beepNote, beepVol, 100, false); 
+    toneAC(kBeepNote, beepVol, 100, false); 
     delay(50);
   }
   if (out == 1) {
@@ -402,7 +403,7 @@ void recordShot() {
   lcd.setCursor(6, 1);
   lcdPrintTime(&lcd, shotTimes[currentShot], 9); 
   currentShot += 1;
-  if (currentShot == shotLimit) { 
+  if (currentShot == kShotLimit) { 
     DEBUG_PRINTLN(F("Out of room for shots"),0);
     stopTimer(1);
   }
@@ -915,7 +916,7 @@ void on_menuParTimes_selected(MenuItem* p_menu_item) {
 void parUp() {
   DEBUG_PRINTLN(F("parUp()"), 0);
   if (currentPar == 0) {
-    currentPar = parLimit - 1;
+    currentPar = kParLimit - 1;
   }
   else {
     currentPar--;
@@ -939,8 +940,8 @@ void parUp() {
 
 void parDown() {
   DEBUG_PRINTLN(F("parDown()"), 1);
-  DEBUG_PRINTLN(parLimit,0);
-  if (currentPar == parLimit - 1) {
+  DEBUG_PRINTLN(kParLimit,0);
+  if (currentPar == kParLimit - 1) {
     currentPar = 0;
   }
   else {
@@ -1206,7 +1207,7 @@ void decreaseTime() {
 /////////////////////////////////////////////////////////////
 
 void BEEP() {
-  toneAC(beepNote, beepVol, beepDur, true);
+  toneAC(kBeepNote, beepVol, kBeepDur, true);
 }
 
 /////////////////////////////////////////////////////////////
@@ -1214,7 +1215,7 @@ void BEEP() {
 /////////////////////////////////////////////////////////////
 
 void buttonTone() {
-  toneAC(beepNote, buttonVol, buttonDur, true);
+  toneAC(kBeepNote, beepVol, kButtonDur, true);
 }
 
 /////////////////////////////////////////////////////////////
@@ -1279,27 +1280,27 @@ void eepromSetup() {
 void menuSetup()
 {
     DEBUG_PRINTLN(F("Setting up menu:"),0);
-    DEBUG_PRINTLN_P(mainName,0);
+    DEBUG_PRINTLN_P(kMainName,0);
   mainMenu.add_item(&menuStart, &on_menuStart_selected);
-    DEBUG_PRINTLN_P(startName,0);
+    DEBUG_PRINTLN_P(kStartName,0);
   mainMenu.add_item(&menuReview, &on_menuReview_selected);
-    DEBUG_PRINTLN_P(reviewName,0);
+    DEBUG_PRINTLN_P(kReviewName,0);
   mainMenu.add_menu(&parMenu);
-    DEBUG_PRINTLN_P(parName,0);
+    DEBUG_PRINTLN_P(kParName,0);
     parMenu.add_item(&menuParState, &on_menuParState_selected);
-      DEBUG_PRINTLN_P(parSetName,0);
+      DEBUG_PRINTLN_P(kParSetName,0);
     parMenu.add_item(&menuParTimes, &on_menuParTimes_selected);
-      DEBUG_PRINTLN_P(parTimesName,0);
+      DEBUG_PRINTLN_P(kParTimesName,0);
   mainMenu.add_menu(&settingsMenu);
-    DEBUG_PRINTLN_P(settingsName,0);
+    DEBUG_PRINTLN_P(kSettingsName,0);
     settingsMenu.add_item(&menuStartDelay, &on_menuStartDelay_selected);
-      DEBUG_PRINTLN_P(setDelayName,0);
+      DEBUG_PRINTLN_P(kSetDelayName,0);
     settingsMenu.add_item(&menuBuzzer, &on_menuBuzzer_selected);
-      DEBUG_PRINTLN_P(buzzerName,0);
+      DEBUG_PRINTLN_P(kBuzzerName,0);
     settingsMenu.add_item(&menuSensitivity, &on_menuSensitivity_selected);
-      DEBUG_PRINTLN_P(sensitivityName,0);
+      DEBUG_PRINTLN_P(kSensitivityName,0);
     settingsMenu.add_item(&menuEcho, &on_menuEcho_selected);
-    DEBUG_PRINTLN_P(echoName,0);
+    DEBUG_PRINTLN_P(kEchoName,0);
   tm.set_root_menu(&mainMenu); 
     DEBUG_PRINTLN(F("Menu Setup Complete"),0);
 }
@@ -1324,7 +1325,7 @@ void lcdSetup() {
 // returns true if the button state 
 //////////////
 void buttonListener(Adafruit_RGBLCDShield* lcd, 
-                    uint8_t* bState, programState* pState) {
+                    uint8_t* bState, ProgramState* pState) {
   //DEBUG_PRINT(F("pState: ")); DEBUG_PRINTLN(*pState,0);
   //DEBUG_PRINT(F("currentState: ")); DEBUG_PRINTLN(currentState,0);
   /////////////////////////////
@@ -1346,19 +1347,13 @@ void buttonListener(Adafruit_RGBLCDShield* lcd,
     case MENU:
       switch (newButton) {
         case BUTTON_SELECT:
-          //const Menu* menu2 = tm.get_current_menu();
-          //Serial.println(tm.get_current_menu()->get_name());
           DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
           DEBUG_PRINTLN_P(tm.get_current_menu()->get_name(),0);
-          //DEBUG_PRINTLN_P(menu2->get_name(),0);
-          //DEBUG_PRINTLN_P(menu2->get_selected()->get_name(),0);
           tm.select();
           if(currentState == MENU){renderMenu();}
           break;
         case BUTTON_RIGHT:
-          //Menu const* menu = tm.get_current_menu();
           DEBUG_PRINTLN(F("RIGHT/SELECT"), 0);
-          //DEBUG_PRINTLN(menu->get_name(),0);
           tm.select();
           if(currentState == MENU){renderMenu();}
           break;
@@ -1585,10 +1580,6 @@ void shotListener() {
 // SETUP AND LOOP
 //////////////////////////////////////////////////////////
 
-//////////////
-// SETUP
-//////////////
-
 void setup() {
   randomSeed(analogRead(1));
   DEBUG_SETUP();
@@ -1597,10 +1588,6 @@ void setup() {
   lcdSetup();
   DEBUG_PRINTLN(F("Setup Complete"), 0);
 }
-
-//////////////
-// LOOP
-//////////////
 
 void loop() {
   //Probably all button actions should come before runTimer()

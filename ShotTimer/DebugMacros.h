@@ -30,11 +30,11 @@
     //////////////////////
     // DEBUG STRING CONSTANTS
     //////////////////////
-    const char PROGMEM millisStr[] = "ms";
-    const char PROGMEM bytesStr[] = "B";
-    const char PROGMEM colStr[] = ":";
-    const char PROGMEM spaceStr[] = " ";
-    const char PROGMEM newlineStr[] = "\n";
+    const char PROGMEM kMillisStr[] = "ms";
+    const char PROGMEM kBytesStr[] = "B";
+    const char PROGMEM kColStr[] = ":";
+    const char PROGMEM kSpaceStr[] = " ";
+    const char PROGMEM kNewlineStr[] = "\n";
     //////////////////////
     //////////////////////
     // INTERNAL FUNCTIONS
@@ -56,31 +56,31 @@
     // Serial PROGMEM Helpers - Print a string from PROGMEM to Serial output
     ///////////
 
-    void serialPrint_p(const char* str)
+    void serialPrint_p(const char* kStr)
     {
       char c;
-      if (!str)
+      if (!kStr)
       {
         return;
       }
-      while (c = pgm_read_byte(str++))
+      while (c = pgm_read_byte(kStr++))
       {
         Serial.print(c);
       }
     }
     //println
-    void serialPrintln_p(const char* str)
+    void serialPrintln_p(const char* kStr)
     {
       char c;
-      if (!str)
+      if (!kStr)
       {
         return;
       }
-      while (c = pgm_read_byte(str++))
+      while (c = pgm_read_byte(kStr++))
       {
         Serial.print(c);
       }
-      serialPrint_p(newlineStr); //Serial.print("\n");
+      serialPrint_p(kNewlineStr); //Serial.print("\n");
     }
 
     //////////////////////
@@ -97,17 +97,17 @@
     #define DEBUG_PRINTLN(str, bl)                      \
       if (bl > 0)                                       \
       {                                                 \
-      serialPrint_p(millisStr);                         \
+      serialPrint_p(kMillisStr);                         \
       Serial.print(millis());                           \
-      serialPrint_p(bytesStr);                          \
+      serialPrint_p(kBytesStr);                          \
       Serial.print(FREE_RAM());                         \
-      serialPrint_p(colStr);                            \
+      serialPrint_p(kColStr);                            \
       Serial.print(__PRETTY_FUNCTION__);                \
-      serialPrint_p(spaceStr);                          \
+      serialPrint_p(kSpaceStr);                          \
       Serial.print(__FILE__);                           \
-      serialPrint_p(colStr);                            \
+      serialPrint_p(kColStr);                            \
       Serial.print(__LINE__);                           \
-      serialPrint_p(spaceStr);                          \
+      serialPrint_p(kSpaceStr);                          \
       }                                                 \
       Serial.println(str);
     #define DEBUG_PRINT_P(str)                          \
@@ -115,17 +115,17 @@
     #define DEBUG_PRINTLN_P(str, bl)                    \
       if (bl > 0)                                       \
       {                                                 \
-      serialPrint_p(millisStr);                         \
+      serialPrint_p(kMillisStr);                         \
       Serial.print(millis());                           \
-      serialPrint_p(bytesStr);                          \
+      serialPrint_p(kBytesStr);                          \
       Serial.print(FREE_RAM());                         \
-      serialPrint_p(colStr);                            \
+      serialPrint_p(kColStr);                            \
       Serial.print(__PRETTY_FUNCTION__);                \
-      serialPrint_p(spaceStr);                          \
+      serialPrint_p(kSpaceStr);                          \
       Serial.print(__FILE__);                           \
-      serialPrint_p(colStr);                            \
+      serialPrint_p(kColStr);                            \
       Serial.print(__LINE__);                           \
-      serialPrint_p(spaceStr);                          \
+      serialPrint_p(kSpaceStr);                          \
       }                                                 \
       serialPrintln_p(str);
     
@@ -137,6 +137,6 @@
     #define DEBUG_PRINTLN_P(str, bl)
   #endif
 
-#endif DEBUGMACROS_H_
+#endif // DEBUGMACROS_H_
 
 

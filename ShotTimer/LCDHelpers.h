@@ -53,14 +53,14 @@
   // PROGMEM Helper - Print a string from PROGMEM to an LCD Screen
   /////////////////////////////////////////////////////////////
   
-  void lcdPrint_p(Adafruit_RGBLCDShield* lcd, const char * str)
+  void lcdPrint_p(Adafruit_RGBLCDShield* lcd, const char * kStr)
   {
     char c;
-    if (!str)
+    if (!kStr)
     {
       return;
     }
-    while (c = pgm_read_byte(str++))
+    while (c = pgm_read_byte(kStr++))
       lcd->print(c);
   }
   

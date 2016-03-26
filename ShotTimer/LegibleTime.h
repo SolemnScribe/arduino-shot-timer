@@ -163,4 +163,4 @@
     DEBUG_PRINTLN(F("Done Converting Time"), 0);
   }
 
-#endif //LEGIBLETIME_H_
+#endif // LEGIBLETIME_H_
