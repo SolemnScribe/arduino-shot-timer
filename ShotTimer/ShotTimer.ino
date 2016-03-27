@@ -150,6 +150,20 @@ const char PROGMEM kSetDelayName[] = "<< [Set Delay] ";
 const char PROGMEM kBuzzerName[] = "<< [Buzzer Vol]";
 const char PROGMEM kSensitivityName[] = "<< [Sensitivity]";
 const char PROGMEM kEchoName[] = "<< [Echo Reject]";
+
+const char PROGMEM kClearLine[] = "                ";
+const char PROGMEM kSpace[] = " ";
+const char PROGMEM kRan1to4[] = "Random 1-4s";
+const char PROGMEM kRan2to6[] = "Random 2-6s";
+const char PROGMEM kShotNum[] = "Shot #";
+const char PROGMEM kSplit[] = "Split";
+const char PROGMEM kFirst[] = "   1st";
+const char PROGMEM kMS[] = "ms";
+const char PROGMEM kDisabled[] = "[DISABLED]";
+const char PROGMEM kEnabled[] = "[ENABLED] ";
+const char PROGMEM kPlus[] = "+";
+const char PROGMEM kCursor[] = "  _  ";
+
 const int PROGMEM kParLimit = 10;
 const int PROGMEM kShotLimit = 200;
 
@@ -183,7 +197,8 @@ byte g_delay_time = 11;
 byte g_beep_vol = 0;
 byte g_sensitivity = 1;
 byte g_sample_window = 50;
-uint32_t g_shot_times[kShotLimit]; // do we want to instantiate the size in setup()
+// do we want to instantiate the size in setup()
+uint32_t g_shot_times[kShotLimit]; 
 unsigned long g_par_times[kParLimit]; 
 uint32_t g_additive_par;
 byte g_current_shot; // REFACTOR, MAY NOT NEED TO BE GLOBAL
@@ -245,7 +260,7 @@ void RenderMenu() {
   g_lcd.setBacklight(WHITE);
   g_lcd.clear();
   g_lcd.setCursor(0, 0);
-  lcd_print_p(&g_lcd, kMenu->get_name()); // g_lcd.print(F("Shot Timer v.3"));
+  lcd_print_p(&g_lcd, kMenu->get_name());
   DEBUG_PRINT(F("Rendering Menu: "));
   DEBUG_PRINTLN_P(kMenu->get_name(),0);
   g_lcd.setCursor(0, 1);
@@ -283,7 +298,6 @@ int SampleSound() {
     }
   }
   peak_to_peak = signal_max - signal_min; // max - min = peak-peak amplitude
-  //int millVolts = ((peak_to_peak * 3.3) / 1024)*1000 ; // convert to millivolts
   return (peak_to_peak);
 }
 
@@ -300,8 +314,8 @@ void on_menu_start_selected(MenuItem* p_menu_item) {
   DEBUG_PRINTLN(F("Starting Timer"),1);
   g_current_state = TIMER;
   g_lcd.setBacklight(GREEN);
-  // reset the values of the array of shots to 0 NOT <= because g_current_shot is 
-  // incremented at the end of the last one recorded
+  // reset the values of the array of shots to 0 NOT <= because g_current_shot 
+  // is incremented at the end of the last one recorded
   for (int c = 0; c < g_current_shot; c++) { 
     g_shot_times[c] = 0;
   }
@@ -309,7 +323,7 @@ void on_menu_start_selected(MenuItem* p_menu_item) {
   g_lcd.setCursor(0, 0);
   g_lcd.print(F("Wait for it...  "));
   g_lcd.setCursor(0, 1);
-  g_lcd.print(F("                ")); // create a clearline function? 
+  lcd_print_p(&g_lcd, kClearLine); // create a clearline function? 
                                     // Save fewer strings in progmem?
   StartDelay();
   g_lcd.setCursor(0, 0);
@@ -324,8 +338,8 @@ void on_menu_start_selected(MenuItem* p_menu_item) {
 // Run the shot timer - runs in loop()
 //////////////////////////////////////////////////////////
 
-// @TODO: Decide if passing in current state as an argument or just accessing as
-// a global variable!
+// @TODO: Decide if passing in current state as an argument or just accessing 
+// as a global variable!
 void RunTimer(ProgramState* p_state, boolean* par_state) {
   //DEBUG_PRINTLN(*runState, 0);
   if (*p_state == TIMER)
@@ -396,13 +410,14 @@ void StopTimer(boolean out = 0) {
 
 void RecordShot() {
   g_shot_times[g_current_shot] = g_shot_chrono.elapsed();
-  DEBUG_PRINT(F("Shot #")); DEBUG_PRINT(g_current_shot + 1); DEBUG_PRINT(F(" - "));
+  DEBUG_PRINT_P(kShotNum); DEBUG_PRINT(g_current_shot + 1); 
+  DEBUG_PRINT(F(" - "));
   DEBUG_PRINT(F("\n"));
   //serialPrintln(shotTimer.elapsed());
   //serialPrintln(g_shot_chrono.elapsed(), 9);
   g_lcd.setCursor(13, 0);
   lcd_print(&g_lcd, g_current_shot + 1, 3);
-  g_lcd.setCursor(6, 1);
+  g_lcd.setCursor(7, 1);
   lcd_print_time(&g_lcd, g_shot_times[g_current_shot], 9); 
   g_current_shot += 1;
   if (g_current_shot == kShotLimit) { 
@@ -421,32 +436,35 @@ void on_menu_review_selected(MenuItem* p_menu_item) {
     DEBUG_PRINTLN(g_current_state, 0);
     g_current_state = REVIEW;
     DEBUG_PRINTLN(g_current_state, 0);
+    // If there is more than one shot, start at the last shot in the string
     if (g_current_shot > 0) {
       g_review_shot = g_current_shot - 1;
     }
-    DEBUG_PRINT(F("Reviewing Shot: ")); DEBUG_PRINTLN(g_review_shot,0);
     //DEBUG FOR LOOP - PRINT ALL SHOT TIMES IN THE STRING TO SERIAL 
     for (int t = 0; t < g_current_shot; t++) {
-      DEBUG_PRINT(F("Shot #"));
+      DEBUG_PRINT_P(kShotNum);
       DEBUG_PRINT(t + 1);
       DEBUG_PRINT(F(" - "));
-      g_shot_times[t]; // for DEBUG
+      DEBUG_PRINTLN(g_shot_times[t];,0) // for DEBUG
     }
+    //END DEBUG 
     g_lcd.setBacklight(VIOLET);
     g_lcd.setCursor(0, 0);
-    g_lcd.print(F("Shot #"));
+    DEBUG_PRINT(F("Reviewing Shot: ")); DEBUG_PRINTLN(g_review_shot,0);
+    lcd_print_p(&g_lcd, kShotNum);
     g_lcd.print(g_current_shot);
-    g_lcd.print(F("                "));
-    g_lcd.setCursor(9, 0);
-    g_lcd.print(F(" Split "));
+    lcd_print_p(&g_lcd, kClearLine);
+    g_lcd.setCursor(11, 0);
+    lcd_print_p(&g_lcd, kSplit);
     g_lcd.setCursor(0, 1);
     lcd_print_time(&g_lcd, g_shot_times[g_review_shot], 9);
-    g_lcd.print(F(" "));
+    lcd_print_p(&g_lcd, kSpace);
     if (g_review_shot == 0) {
-      g_lcd.print(F("   1st"));
+      lcd_print_p(&g_lcd, kFirst);
     }
     if (g_review_shot > 1) {
-      lcd_print_time(&g_lcd, g_shot_times[g_review_shot] - g_shot_times[g_review_shot - 1], 6);
+      lcd_print_time(&g_lcd, g_shot_times[g_review_shot] - 
+                      g_shot_times[g_review_shot - 1], 6);
     }
     DEBUG_PRINTLN(tm.get_current_menu()->get_name(),0);
   } else {
@@ -465,27 +483,27 @@ void NextShot() {
   DEBUG_PRINTLN(F("NextShot()"), 0);
   DEBUG_PRINTLN(g_current_state, 0);
   g_lcd.setCursor(0, 0);
-  g_lcd.print(F("Shot #"));
+  lcd_print_p(&g_lcd, kShotNum);
   if (g_current_shot == 0 || g_review_shot == g_current_shot - 1) {
     g_review_shot = 0;
     g_lcd.print(g_review_shot + 1);
   }
-  else if (g_review_shot == 0) {
-    g_review_shot = g_current_shot - 1;
-    g_lcd.print(g_review_shot + 1);
-  }
+  // else if (g_review_shot == 0) {
+  //   g_review_shot = g_current_shot - 1;
+  //   g_lcd.print(g_review_shot + 1);
+  // }
   else {
     g_review_shot++;
     g_lcd.print(g_review_shot + 1);
   }
-  g_lcd.print(F("                "));
+  lcd_print_p(&g_lcd, kClearLine);
   g_lcd.setCursor(11, 0);
-  g_lcd.print(F("Split"));
+  lcd_print_p(&g_lcd, kSplit);
   g_lcd.setCursor(0, 1);
   lcd_print_time(&g_lcd, g_shot_times[g_review_shot], 9);
-  g_lcd.print(F(" "));
+  lcd_print_p(&g_lcd, kSpace);
   if (g_review_shot == 0) {
-    g_lcd.print(F("   1st"));
+    lcd_print_p(&g_lcd, kFirst);
   }
   else {
     lcd_print_time(&g_lcd, g_shot_times[g_review_shot] - 
@@ -501,7 +519,7 @@ void PreviousShot() {
   DEBUG_PRINTLN(F("PreviousShot()"), 0);
   DEBUG_PRINTLN(g_current_state, 0);
   g_lcd.setCursor(0, 0);
-  g_lcd.print(F("Shot #"));
+  lcd_print_p(&g_lcd, kShotNum);
   if (g_current_shot == 0) {
     g_review_shot = 0;
     g_lcd.print(g_review_shot);
@@ -514,14 +532,14 @@ void PreviousShot() {
     g_review_shot--;
     g_lcd.print(g_review_shot + 1);
   }
-  g_lcd.print(F("                "));
+  lcd_print_p(&g_lcd, kClearLine);
   g_lcd.setCursor(11, 0);
-  g_lcd.print(F("Split"));
+  lcd_print_p(&g_lcd, kSplit);
   g_lcd.setCursor(0, 1);
   lcd_print_time(&g_lcd, g_shot_times[g_review_shot], 9);
-  g_lcd.print(F(" "));
+  lcd_print_p(&g_lcd, kSpace);
   if (g_review_shot == 0) {
-    g_lcd.print(F("   1st"));
+    lcd_print_p(&g_lcd, kFirst);
   }
   else {
     lcd_print_time(&g_lcd, g_shot_times[g_review_shot] - 
@@ -544,18 +562,17 @@ void RateOfFire(boolean includeDraw = true) {
   else rof = g_shot_times[g_current_shot - 1] / (g_current_shot - 1);
 
   g_lcd.setCursor(0, 0);
-  g_lcd.print(F("                "));
+  lcd_print_p(&g_lcd, kClearLine);
   g_lcd.setCursor(0, 0);
   g_lcd.print(F("Avg Split:"));
   g_lcd.setCursor(11, 0);
   lcd_print_time(&g_lcd, rof, 6);
   g_lcd.setCursor(0, 1);
-  g_lcd.print(F("                "));
+  lcd_print_p(&g_lcd, kClearLine);
   g_lcd.setCursor(0, 1);
   g_lcd.print(F("Shots/min:"));
   g_lcd.setCursor(11, 1);
   g_lcd.print(60000 / rof); // will this produce a decimal? Or a truncated int?
-  //10 characters   //1 characters          //4 characters plus truncated?
 }
 
 
@@ -572,10 +589,10 @@ void on_menu_start_delay_selected(MenuItem* p_menu_item) {
     g_lcd.print(F("Start Delay"));
     g_lcd.setCursor(0, 1);
     if (g_delay_time > 11) {
-      g_lcd.print(F("Random 2-6s"));
+      lcd_print_p(&g_lcd, kRan2to6);
     }
     else if (g_delay_time == 11) {
-      g_lcd.print(F("Random 1-4s"));
+      lcd_print_p(&g_lcd, kRan1to4);
     }
     else {
       g_lcd.print(g_delay_time);
@@ -603,15 +620,15 @@ void IncreaseDelay() {
   }
   g_lcd.setCursor(0, 1);
   if (g_delay_time > 11) {
-    g_lcd.print(F("Random 2-6s"));
+    lcd_print_p(&g_lcd, kRan2to6);
   }
   else if (g_delay_time == 11) {
-    g_lcd.print(F("Random 1-4s"));
+    lcd_print_p(&g_lcd, kRan1to4);
   }
   else {
     g_lcd.print(g_delay_time);
   }
-  g_lcd.print(F("                "));
+  lcd_print_p(&g_lcd, kClearLine);
 }
 
 /////////////////////////////////////////////////////////////
@@ -628,15 +645,15 @@ void DecreaseDelay() {
   }
   g_lcd.setCursor(0, 1);
   if (g_delay_time > 11) {
-    g_lcd.print(F("Random 2-6s"));
+    lcd_print_p(&g_lcd, kRan2to6);
   }
   else if (g_delay_time == 11) {
-    g_lcd.print(F("Random 1-4s"));
+    lcd_print_p(&g_lcd, kRan1to4);
   }
   else {
     g_lcd.print(g_delay_time);
   }
-  g_lcd.print(F("                "));
+  lcd_print_p(&g_lcd, kClearLine);
 }
 
 /////////////////////////////////////////////////////////////
@@ -693,7 +710,7 @@ void IncreaseBeepVol() {
   g_lcd.setCursor(0, 1);
   lcd_print(&g_lcd, g_beep_vol, 2);
   //@TODO REplace with a single PROGMEM clear buffer
-  g_lcd.print(F("                "));
+  lcd_print_p(&g_lcd, kClearLine);
 }
 
 /////////////////////////////////////////////////////////////
@@ -710,7 +727,7 @@ void DecreaseBeepVol() {
   }
   g_lcd.setCursor(0, 1);
   lcd_print(&g_lcd, g_beep_vol, 2);
-  g_lcd.print(F("                "));
+  lcd_print_p(&g_lcd, kClearLine);
 }
 
 /////////////////////////////////////////////////////////////
@@ -750,7 +767,7 @@ void IncreaseSensitivity() {
   SensToThreshold();
   g_lcd.setCursor(0, 1);
   lcd_print(&g_lcd, g_sensitivity, 2);
-  g_lcd.print(F("                "));
+  lcd_print_p(&g_lcd, kClearLine);
 }
 
 /////////////////////////////////////////////////////////////
@@ -768,7 +785,7 @@ void DecreaseSensitivity() {
   SensToThreshold();
   g_lcd.setCursor(0, 1);
   lcd_print(&g_lcd, g_sensitivity, 2);
-  g_lcd.print(F("                "));
+  lcd_print_p(&g_lcd, kClearLine);
 }
 
 /////////////////////////////////////////////////////////////
@@ -784,7 +801,7 @@ void on_menu_echo_selected(MenuItem* p_menu_item) {
     g_lcd.print(F("Echo Protect"));
     g_lcd.setCursor(0, 1);
     g_lcd.print(g_sample_window);
-    g_lcd.print(F("ms"));
+    lcd_print_p(&g_lcd, kMS);
   }
   else {
     DEBUG_PRINTLN(F("Save Echo and Return to Menu"), 0);
@@ -808,7 +825,8 @@ void IncreaseEchoProtect() {
   }
   g_lcd.setCursor(0, 1);
   g_lcd.print(g_sample_window);
-  g_lcd.print(F("ms              ")); //CLEARLINE
+  lcd_print_p(&g_lcd, kMS); 
+  lcd_print_p(&g_lcd, kClearLine);
 }
 
 /////////////////////////////////////////////////////////////
@@ -825,7 +843,8 @@ void DecreaseEchoProtect() {
   }
   g_lcd.setCursor(0, 1);
   g_lcd.print(g_sample_window);
-  g_lcd.print(F("ms              "));//CLEARLINE
+  lcd_print_p(&g_lcd, kMS);
+  lcd_print_p(&g_lcd, kClearLine);
 }
 
 /////////////////////////////////////////////////////////////
@@ -852,10 +871,10 @@ void on_menu_par_state_selected(MenuItem* p_menu_item) {
     g_lcd.print(F("Par Times"));
     g_lcd.setCursor(0, 1);
     if (g_par_enabled == false) {
-      g_lcd.print(F("[DISABLED]"));
+      lcd_print_p(&g_lcd, kDisabled);
     }
     else {
-      g_lcd.print(F("[ENABLED]"));
+      lcd_print_p(&g_lcd, kEnabled);
     }
   }
   else {
@@ -876,10 +895,10 @@ void ToggleParState() {
   DEBUG_PRINT(F("Toggled Par to: "));DEBUG_PRINTLN(g_par_enabled, 0);
   g_lcd.setCursor(0, 1);
   if (g_par_enabled == false) {
-    g_lcd.print(F("[DISABLED]")); //10 characters
+    lcd_print_p(&g_lcd, kDisabled); //10 characters
   }
   else {
-    g_lcd.print(F("[ENABLED] ")); //10 characters
+    lcd_print_p(&g_lcd, kEnabled); //10 characters
   }
 }
 
@@ -903,10 +922,10 @@ void on_menu_par_times_selected(MenuItem* p_menu_item) {
     lcd_print(&g_lcd, (g_current_par + 1), 2);
     g_lcd.setCursor(4, 1);
     if (g_current_par > 0) {
-      g_lcd.print(F("+"));
+      lcd_print_p(&g_lcd, kPlus);
     }
     else {
-      g_lcd.print(F(" "));
+      lcd_print_p(&g_lcd, kSpace);
     }
     lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
     DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
@@ -934,10 +953,10 @@ void ParUp() {
   lcd_print(&g_lcd, (g_current_par + 1), 2);
   g_lcd.setCursor(4, 1);
   if (g_current_par > 0) {
-    g_lcd.print(F("+"));
+    lcd_print_p(&g_lcd, kPlus);
   }
   else {
-    g_lcd.print(F(" "));
+    lcd_print_p(&g_lcd, kSpace);
   }
   lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
   DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
@@ -960,10 +979,10 @@ void ParDown() {
   lcd_print(&g_lcd, (g_current_par + 1), 2);
   g_lcd.setCursor(4, 1);
   if (g_current_par > 0) {
-    g_lcd.print(F("+"));
+    lcd_print_p(&g_lcd, kPlus);
   }
   else {
-    g_lcd.print(F(" "));
+    lcd_print_p(&g_lcd, kSpace);
   }
   lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
   DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
@@ -979,15 +998,17 @@ void EditPar() {
     g_current_state = SETINDPAR;
     g_lcd.setBacklight(GREEN);
     g_lcd.setCursor(0, 0);
-    g_lcd.print(F("Edit        "));
+    g_lcd.print(F("Edit"));
+    lcd_print_p(&g_lcd, kClearLine);
     g_lcd.setCursor(0, 1);
     g_lcd.print(F("P"));
     lcd_print(&g_lcd, g_current_par + 1, 2);
+    g_lcd.setCursor(0, 5);
     if (g_current_par > 0) {
-      g_lcd.print(F(" +"));
+      lcd_print_p(&g_lcd, kPlus);
     }
     else {
-      g_lcd.print(F("  "));
+      lcd_print_p(&g_lcd, kSpace);
     }
     g_lcd.setCursor(5, 1);
     lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
@@ -1044,33 +1065,33 @@ void LCDCursor() {
       g_lcd.setCursor(11, 0); //icon at 13
       g_lcd.print(F("  _"));
       g_lcd.setCursor(5, 0); //left behind icon at 5
-      g_lcd.print(F(" "));
+      lcd_print_p(&g_lcd, kSpace);
       break;
     case 2: //ten milliseconds
       g_lcd.setCursor(10, 0); //icon at 12
-      g_lcd.print(F("  _  "));
+      lcd_print_p(&g_lcd, kCursor);
       break;
     case 3: //hundred milliseconds
       g_lcd.setCursor(9, 0); //icon at 11
-      g_lcd.print(F("  _  "));
+      lcd_print_p(&g_lcd, kCursor);
       break;
     case 4: //seconds
       g_lcd.setCursor(7, 0); //icon at 9
-      g_lcd.print(F("  _  "));
+      lcd_print_p(&g_lcd, kCursor);
       break;
     case 5: //ten seconds
       g_lcd.setCursor(6, 0); // icon at 8
-      g_lcd.print(F("  _  "));
+      lcd_print_p(&g_lcd, kCursor);
       break;
     case 6: //minutes
       g_lcd.setCursor(4, 0); //icon at 6
-      g_lcd.print(F("  _  "));
+      lcd_print_p(&g_lcd, kCursor);
       break;
     case 7: //ten minutes
       g_lcd.setCursor(5, 0); //icon at 5
       g_lcd.print(F("_  "));
       g_lcd.setCursor(13, 0); //left behind icon at 13
-      g_lcd.print(F(" "));
+      lcd_print_p(&g_lcd, kSpace);
       break;
   }
 }
