@@ -31,7 +31,7 @@
 
 /////////////////////////////////////////
 // Current Flaws:
-// shotListener(); probably could be redesigned to run on a timer interupt.
+// ShotListener(); probably could be redesigned to run on a timer interupt.
 // as a result, the g_par_times beep may come as early or late as half the sample 
 // window time. However, at most reasonable g_sample_windows this will likely be 
 // indistinguishable to the user
@@ -174,7 +174,7 @@ uint8_e g_beep_setting_e;  // Can be 0
 uint8_e g_sens_setting_e;  // Can be 0
 uint8_e g_sample_setting_e; //Cannot be 0  
 // ECHO REJECT: Sample window width in mS (50 mS = 20Hz) for function 
-// sampleSound()
+// SampleSound()
 
 /////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -240,7 +240,7 @@ Menu main_menu(kMainName);
 // Render the current menu screen
 //////////////////////////////////////////////////////////
 
-void renderMenu() {
+void RenderMenu() {
   Menu const* kMenu = tm.get_current_menu();
   g_lcd.setBacklight(WHITE);
   g_lcd.clear();
@@ -257,7 +257,7 @@ void renderMenu() {
 //////////////////////////////////////////////////////////
 // Sample Sound
 //////////////////////////////////////////////////////////
-int sampleSound() {
+int SampleSound() {
   uint32_t start_millis = millis();  // Start of sample window 
   // the peak to peak reading will be the total loudness change across the 
   // sample wiindow!
@@ -311,7 +311,7 @@ void on_menu_start_selected(MenuItem* p_menu_item) {
   g_lcd.setCursor(0, 1);
   g_lcd.print(F("                ")); // create a clearline function? 
                                     // Save fewer strings in progmem?
-  startDelay();
+  StartDelay();
   g_lcd.setCursor(0, 0);
   g_lcd.print(F(" GO!!  Shot#    ")); //g_lcd.setCursor(0, 13);
   g_lcd.setCursor(0, 1);
@@ -326,20 +326,20 @@ void on_menu_start_selected(MenuItem* p_menu_item) {
 
 // @TODO: Decide if passing in current state as an argument or just accessing as
 // a global variable!
-void runTimer(ProgramState* p_state, boolean* par_state) {
+void RunTimer(ProgramState* p_state, boolean* par_state) {
   //DEBUG_PRINTLN(*runState, 0);
   if (*p_state == TIMER)
   { 
     //DEBUG_PRINTLN(F("Enter Run Timer Mode."), 0);
-    shotListener();
-    parBeeps(par_state);
+    ShotListener();
+    ParBeeps(par_state);
   }
 }
 //////////////////////////////////////////////////////////
 // Beep at each par time - runs indirectly in loop()
 //////////////////////////////////////////////////////////
 
-void parBeeps(boolean* par_state)
+void ParBeeps(boolean* par_state)
 {
     //DEBUG_PRINTLN(*par_state, 0);
     if (*par_state == true) {
@@ -368,7 +368,7 @@ void parBeeps(boolean* par_state)
 //////////////////////////////////////////////////////////
 // Stop the shot timer
 //////////////////////////////////////////////////////////
-void stopTimer(boolean out = 0) {
+void StopTimer(boolean out = 0) {
   DEBUG_PRINTLN(F("Stopping Timer"),0);
   if (out == 1) {
     g_lcd.setBacklight(RED);
@@ -394,7 +394,7 @@ void stopTimer(boolean out = 0) {
 // Record shots to the string array
 //////////////////////////////////////////////////////////
 
-void recordShot() {
+void RecordShot() {
   g_shot_times[g_current_shot] = g_shot_chrono.elapsed();
   DEBUG_PRINT(F("Shot #")); DEBUG_PRINT(g_current_shot + 1); DEBUG_PRINT(F(" - "));
   DEBUG_PRINT(F("\n"));
@@ -407,7 +407,7 @@ void recordShot() {
   g_current_shot += 1;
   if (g_current_shot == kShotLimit) { 
     DEBUG_PRINTLN(F("Out of room for shots"),0);
-    stopTimer(1);
+    StopTimer(1);
   }
 }
 
@@ -453,7 +453,7 @@ void on_menu_review_selected(MenuItem* p_menu_item) {
     DEBUG_PRINTLN(F("Return to Menu"), 0);
     DEBUG_PRINTLN(g_current_state, 0);
     g_current_state = MENU;
-    renderMenu();
+    RenderMenu();
   }
 }
 
@@ -461,8 +461,8 @@ void on_menu_review_selected(MenuItem* p_menu_item) {
 // review shots - move to the next shot in the string
 //////////////////////////////////////////////////////////
 
-void nextShot() {
-  DEBUG_PRINTLN(F("nextShot()"), 0);
+void NextShot() {
+  DEBUG_PRINTLN(F("NextShot()"), 0);
   DEBUG_PRINTLN(g_current_state, 0);
   g_lcd.setCursor(0, 0);
   g_lcd.print(F("Shot #"));
@@ -492,8 +492,8 @@ void nextShot() {
 // review shots - move to the previous shot in the string
 //////////////////////////////////////////////////////////
 
-void previousShot() {
-  DEBUG_PRINTLN(F("previousShot()"), 0);
+void PreviousShot() {
+  DEBUG_PRINTLN(F("PreviousShot()"), 0);
   DEBUG_PRINTLN(g_current_state, 0);
   g_lcd.setCursor(0, 0);
   g_lcd.print(F("Shot #"));
@@ -527,7 +527,7 @@ void previousShot() {
 // Rate of Fire
 //////////////////////////////////////////////////////////
 
-void rateOfFire(boolean includeDraw = true) {
+void RateOfFire(boolean includeDraw = true) {
   DEBUG_PRINTLN(g_current_state, 0);
   DEBUG_PRINTLN(F("rateofFire()"), 0);
   unsigned int rof;
@@ -578,16 +578,16 @@ void on_menu_start_delay_selected(MenuItem* p_menu_item) {
     DEBUG_PRINTLN(F("Save Delay and Return to Menu"), 0);
     g_delay_setting_e = g_delay_time;
     g_current_state = MENU;
-    renderMenu();
+    RenderMenu();
   }
 }
 
 /////////////////////////////////////////////////////////////
-// increaseDelay
+// IncreaseDelay
 /////////////////////////////////////////////////////////////
 
-void increaseDelay() {
-  DEBUG_PRINTLN(F("increaseDelay()"), 0);
+void IncreaseDelay() {
+  DEBUG_PRINTLN(F("IncreaseDelay()"), 0);
   if (g_delay_time == 12) {
     g_delay_time = 0;
   }
@@ -608,11 +608,11 @@ void increaseDelay() {
 }
 
 /////////////////////////////////////////////////////////////
-// decreaseDelay
+// DecreaseDelay
 /////////////////////////////////////////////////////////////
 
-void decreaseDelay() {
-  DEBUG_PRINTLN(F("decreaseDelay()"), 0);
+void DecreaseDelay() {
+  DEBUG_PRINTLN(F("DecreaseDelay()"), 0);
   if (g_delay_time == 0) {
     g_delay_time = 12;
   }
@@ -633,10 +633,10 @@ void decreaseDelay() {
 }
 
 /////////////////////////////////////////////////////////////
-// startDelay
+// StartDelay
 /////////////////////////////////////////////////////////////
 
-void startDelay() {
+void StartDelay() {
   DEBUG_PRINT(F("Start Delay: ")); DEBUG_PRINTLN(g_delay_time, 0);
   if (g_delay_time > 11) {
     delay(random(2000, 6001)); //from 2 to 6 seconds
@@ -667,16 +667,16 @@ void on_menu_buzzer_selected(MenuItem* p_menu_item) {
     DEBUG_PRINTLN(F("Save BeepVol and Return to Menu"), 0);
     g_beep_setting_e = g_beep_vol;
     g_current_state = MENU;
-    renderMenu();
+    RenderMenu();
   }
 }
 
 /////////////////////////////////////////////////////////////
-// increaseBeepVol
+// IncreaseBeepVol
 /////////////////////////////////////////////////////////////
 
-void increaseBeepVol() {
-  DEBUG_PRINTLN(F("increaseBeepVoly()"), 0);
+void IncreaseBeepVol() {
+  DEBUG_PRINTLN(F("IncreaseBeepVoly()"), 0);
   if (g_beep_vol == 10) {
     g_beep_vol = 0;
   }
@@ -690,11 +690,11 @@ void increaseBeepVol() {
 }
 
 /////////////////////////////////////////////////////////////
-// decreaseBeepVol
+// DecreaseBeepVol
 /////////////////////////////////////////////////////////////
 
-void decreaseBeepVol() {
-  DEBUG_PRINTLN(F("decreaseBeepVoly()"), 0);
+void DecreaseBeepVol() {
+  DEBUG_PRINTLN(F("DecreaseBeepVoly()"), 0);
   if (g_beep_vol == 0) {
     g_beep_vol = 10;
   }
@@ -724,41 +724,41 @@ void on_menu_sensitivity_selected(MenuItem* p_menu_item) {
     DEBUG_PRINTLN(F("Save Sensitivity and Return to Menu"), 0);
     g_sens_setting_e = g_sensitivity;
     g_current_state = MENU;
-    renderMenu();
+    RenderMenu();
   }
 }
 
 /////////////////////////////////////////////////////////////
-// increaseSensitivity
+// IncreaseSensitivity
 /////////////////////////////////////////////////////////////
 
-void increaseSensitivity() {
-  DEBUG_PRINTLN(F("increaseSensitivity()"), 0);
+void IncreaseSensitivity() {
+  DEBUG_PRINTLN(F("IncreaseSensitivity()"), 0);
   if (g_sensitivity == 20) {
     g_sensitivity = 0;
   }
   else {
     g_sensitivity++;
   }
-  sensToThreshold();
+  SensToThreshold();
   g_lcd.setCursor(0, 1);
   lcd_print(&g_lcd, g_sensitivity, 2);
   g_lcd.print(F("                "));
 }
 
 /////////////////////////////////////////////////////////////
-// decreaseSensitivity
+// DecreaseSensitivity
 /////////////////////////////////////////////////////////////
 
-void decreaseSensitivity() {
-  DEBUG_PRINTLN(F("decreaseSensitivity()"), 0);
+void DecreaseSensitivity() {
+  DEBUG_PRINTLN(F("DecreaseSensitivity()"), 0);
   if (g_sensitivity == 0) {
     g_sensitivity = 20;
   }
   else {
     g_sensitivity--;
   }
-  sensToThreshold();
+  SensToThreshold();
   g_lcd.setCursor(0, 1);
   lcd_print(&g_lcd, g_sensitivity, 2);
   g_lcd.print(F("                "));
@@ -783,16 +783,16 @@ void on_menu_echo_selected(MenuItem* p_menu_item) {
     DEBUG_PRINTLN(F("Save Echo and Return to Menu"), 0);
     g_sample_setting_e = g_sample_window;
     g_current_state = MENU;
-    renderMenu();
+    RenderMenu();
   }
 }
 
 /////////////////////////////////////////////////////////////
-// increaseEchoProtect
+// IncreaseEchoProtect
 /////////////////////////////////////////////////////////////
 
-void increaseEchoProtect() {
-  DEBUG_PRINTLN(F("increaseEchoProtect()"), 0);
+void IncreaseEchoProtect() {
+  DEBUG_PRINTLN(F("IncreaseEchoProtect()"), 0);
   if (g_sample_window == 100) {
     g_sample_window = 10;
   }
@@ -805,11 +805,11 @@ void increaseEchoProtect() {
 }
 
 /////////////////////////////////////////////////////////////
-// decreaseEchoProtect
+// DecreaseEchoProtect
 /////////////////////////////////////////////////////////////
 
-void decreaseEchoProtect() {
-  DEBUG_PRINTLN(F("decreaseEchoProtect()"), 0);
+void DecreaseEchoProtect() {
+  DEBUG_PRINTLN(F("DecreaseEchoProtect()"), 0);
   if (g_sample_window == 10) {
     g_sample_window = 100;
   }
@@ -825,7 +825,7 @@ void decreaseEchoProtect() {
 // convert g_sensitivity to g_threshold
 /////////////////////////////////////////////////////////////
 
-void sensToThreshold() {
+void SensToThreshold() {
   g_threshold = 650 - (25 * g_sensitivity);
 }
 
@@ -855,15 +855,15 @@ void on_menu_par_state_selected(MenuItem* p_menu_item) {
     DEBUG_PRINTLN(F("Return to Menu"), 0);
     g_current_state = MENU;
     DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(g_current_state,0);
-    renderMenu();
+    RenderMenu();
   }
 }
 
 /////////////////////////////////////////////////////////////
-// toggleParState
+// ToggleParState
 /////////////////////////////////////////////////////////////
 
-void toggleParState() {
+void ToggleParState() {
   g_par_enabled = !g_par_enabled;
   DEBUG_PRINT(F("g_current_state: ")); DEBUG_PRINTLN(g_current_state,0);
   DEBUG_PRINT(F("Toggled Par to: "));DEBUG_PRINTLN(g_par_enabled, 0);
@@ -907,16 +907,16 @@ void on_menu_par_times_selected(MenuItem* p_menu_item) {
   else {
     g_current_state = MENU;
     DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(g_current_state,0);
-    renderMenu();
+    RenderMenu();
   }
 }
 
 /////////////////////////////////////////////////////////////
-// parUp()
+// ParUp()
 /////////////////////////////////////////////////////////////
 
-void parUp() {
-  DEBUG_PRINTLN(F("parUp()"), 0);
+void ParUp() {
+  DEBUG_PRINTLN(F("ParUp()"), 0);
   if (g_current_par == 0) {
     g_current_par = kParLimit - 1;
   }
@@ -937,11 +937,11 @@ void parUp() {
 }
 
 /////////////////////////////////////////////////////////////
-// parDown()
+// ParDown()
 /////////////////////////////////////////////////////////////
 
-void parDown() {
-  DEBUG_PRINTLN(F("parDown()"), 1);
+void ParDown() {
+  DEBUG_PRINTLN(F("ParDown()"), 1);
   DEBUG_PRINTLN(kParLimit,0);
   if (g_current_par == kParLimit - 1) {
     g_current_par = 0;
@@ -963,10 +963,10 @@ void parDown() {
 }
 
 /////////////////////////////////////////////////////////////
-// editPar()
+// EditPar()
 /////////////////////////////////////////////////////////////
 
-void editPar() {
+void EditPar() {
   if(g_current_state != SETINDPAR){
     DEBUG_PRINTLN(F("Enter SETINDPAR Mode"), 0);
     g_current_state = SETINDPAR;
@@ -985,7 +985,7 @@ void editPar() {
     g_lcd.setCursor(5, 1);
     lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
     g_par_cursor = 4; //reset cursor to the seconds position
-    lcdCursor();
+    LCDCursor();
   }
   else {
     DEBUG_PRINTLN(F("Return to SETPARTIMES"), 0);
@@ -997,40 +997,40 @@ void editPar() {
 }
 
 /////////////////////////////////////////////////////////////
-// leftCursor()
+// LeftCursor()
 /////////////////////////////////////////////////////////////
 
-void leftCursor() {
-  DEBUG_PRINTLN(F("leftCursor()"), 0);
+void LeftCursor() {
+  DEBUG_PRINTLN(F("LeftCursor()"), 0);
   if (g_par_cursor == 7) {
     g_par_cursor = 1;
   }
   else {
     g_par_cursor++;
   }
-  lcdCursor();
+  LCDCursor();
 }
 
 /////////////////////////////////////////////////////////////
-// rightCursor()
+// RightCursor()
 /////////////////////////////////////////////////////////////
 
-void rightCursor() {
-  DEBUG_PRINTLN(F("leftCursor()"), 0);
+void RightCursor() {
+  DEBUG_PRINTLN(F("LeftCursor()"), 0);
   if (g_par_cursor == 1) {
     g_par_cursor = 7;
   }
   else {
     g_par_cursor--;
   }
-  lcdCursor();
+  LCDCursor();
 }
 
 /////////////////////////////////////////////////////////////
-// lcdCursor()
+// LCDCursor()
 /////////////////////////////////////////////////////////////
 //switch case for cursor position displayed on screen
-void lcdCursor() {
+void LCDCursor() {
   DEBUG_PRINT(F("Displaying Cursor at: "));DEBUG_PRINTLN(g_par_cursor, 0);
   switch (g_par_cursor) {
     case 1: //milliseconds
@@ -1069,10 +1069,10 @@ void lcdCursor() {
 }
 
 /////////////////////////////////////////////////////////////
-// increaseTime()
+// IncreaseTime()
 /////////////////////////////////////////////////////////////
 
-void increaseTime() {
+void IncreaseTime() {
   DEBUG_PRINT(F("Increase time at: "));DEBUG_PRINTLN(g_par_cursor, 0);
   switch (g_par_cursor) {
     case 1: // milliseconds
@@ -1137,10 +1137,10 @@ void increaseTime() {
 }
 
 /////////////////////////////////////////////////////////////
-// decreaseTime()
+// DecreaseTime()
 /////////////////////////////////////////////////////////////
 
-void decreaseTime() {
+void DecreaseTime() {
   DEBUG_PRINT(F("Decrease time at: "));DEBUG_PRINTLN(g_par_cursor, 0);
   switch (g_par_cursor) {
     case 1:
@@ -1213,10 +1213,10 @@ void BEEP() {
 }
 
 /////////////////////////////////////////////////////////////
-// buttonTone
+// ButtonTone
 /////////////////////////////////////////////////////////////
 
-void buttonTone() {
+void ButtonTone() {
   toneAC(kBeepNote, g_beep_vol, kButtonDur, true);
 }
 
@@ -1225,13 +1225,13 @@ void buttonTone() {
 /////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////
-// eepromSetup
+// EEPROMSetup
 // Note - EEWrap automatically uses an .update() on EEPROM writes, 
 // to avoid wearing out the EEPROM if the value being set is the same as 
 // the existing value. 
 /////////////////////////////////////////////////////////////
 
-void eepromSetup() {
+void EEPROMSetup() {
   DEBUG_PRINTLN(F("Checking if EEPROM needs to be set..."), 0);
   // Unset EEPROM values are set to 255, NOT 0
   // if ANY of our EEPROM stored settings come back 255, we'll know that the 
@@ -1271,7 +1271,7 @@ void eepromSetup() {
       DEBUG_PRINTLN(F("Set g_sample_window to "), 0);
       DEBUG_PRINTLN(g_sample_window, 0);
   }
-  sensToThreshold(); 
+  SensToThreshold(); 
 }
 
 
@@ -1279,7 +1279,7 @@ void eepromSetup() {
 // Menu Setup
 //////////////////////////////////////////////////////////
 
-void menuSetup()
+void MenuSetup()
 {
     DEBUG_PRINTLN(F("Setting up menu:"),0);
     DEBUG_PRINTLN_P(kMainName,0);
@@ -1311,11 +1311,11 @@ void menuSetup()
 // LCD Setup
 //////////////////////////////////////////////////////////
 
-void lcdSetup() {
+void LCDSetup() {
   DEBUG_PRINTLN(F("Setting up the LCD"),0);
   g_lcd.begin(16, 2);
   g_lcd.setBacklight(WHITE);
-  renderMenu();
+  RenderMenu();
 }
 
 //////////////////////////////////////////////////////////
@@ -1326,7 +1326,7 @@ void lcdSetup() {
 // Button Listener
 // returns true if the button state 
 //////////////
-void buttonListener(Adafruit_RGBLCDShield* g_lcd, 
+void ButtonListener(Adafruit_RGBLCDShield* g_lcd, 
                     uint8_t* b_state, ProgramState* p_state) {
   //DEBUG_PRINT(F("p_state: ")); DEBUG_PRINTLN(*p_state,0);
   //DEBUG_PRINT(F("g_current_state: ")); DEBUG_PRINTLN(g_current_state,0);
@@ -1352,34 +1352,34 @@ void buttonListener(Adafruit_RGBLCDShield* g_lcd,
           DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
           DEBUG_PRINTLN_P(tm.get_current_menu()->get_name(),0);
           tm.select();
-          if(g_current_state == MENU){renderMenu();}
+          if(g_current_state == MENU){RenderMenu();}
           break;
         case BUTTON_RIGHT:
           DEBUG_PRINTLN(F("RIGHT/SELECT"), 0);
           tm.select();
-          if(g_current_state == MENU){renderMenu();}
+          if(g_current_state == MENU){RenderMenu();}
           break;
         case BUTTON_LEFT:
           DEBUG_PRINTLN(F("LEFT/BACK"), 0);
           tm.back();
-          renderMenu();
+          RenderMenu();
           break;
         case BUTTON_DOWN:
           DEBUG_PRINTLN(F("DOWN/NEXT"), 0);
           tm.next();
-          renderMenu();
+          RenderMenu();
           break;
         case BUTTON_UP:
           DEBUG_PRINTLN(F("UP/PREV"), 0);
           tm.prev();
-          renderMenu();
+          RenderMenu();
           break;
         }
       break;
     case TIMER:
       if (new_button & BUTTON_SELECT){
-        DEBUG_PRINTLN(F("SELECT/stopTimer()"), 0);
-        stopTimer();
+        DEBUG_PRINTLN(F("SELECT/StopTimer()"), 0);
+        StopTimer();
       }
       break;
     case REVIEW:
@@ -1389,23 +1389,23 @@ void buttonListener(Adafruit_RGBLCDShield* g_lcd,
           tm.select();
           break;
         case BUTTON_RIGHT:
-          DEBUG_PRINTLN(F("RIGHT/rateOfFire()"), 0);
-          rateOfFire();
+          DEBUG_PRINTLN(F("RIGHT/RateOfFire()"), 0);
+          RateOfFire();
           break;
         case BUTTON_LEFT:
-          DEBUG_PRINTLN(F("LEFT/g_review_shot--;nextShot()"), 0);
+          DEBUG_PRINTLN(F("LEFT/g_review_shot--;NextShot()"), 0);
           g_review_shot--;
-          nextShot();
+          NextShot();
           break;
         case BUTTON_DOWN:
-          DEBUG_PRINTLN(F("DOWN/nextShot()"), 0);
-          nextShot(); 
+          DEBUG_PRINTLN(F("DOWN/NextShot()"), 0);
+          NextShot(); 
           //@TODO<-- Maybe I should be building a shot string class, with 
           //functions, rather than using functions to operate on a global array. 
           break;
         case BUTTON_UP:
-          DEBUG_PRINTLN(F("UP/previousShot()"), 0);
-          previousShot();
+          DEBUG_PRINTLN(F("UP/PreviousShot()"), 0);
+          PreviousShot();
           break;
         }
       break;
@@ -1422,16 +1422,16 @@ void buttonListener(Adafruit_RGBLCDShield* g_lcd,
           tm.select();
           break;
         case BUTTON_DOWN:
-          DEBUG_PRINTLN(F("DOWN/toggleParState()"), 0);
-          toggleParState(); 
+          DEBUG_PRINTLN(F("DOWN/ToggleParState()"), 0);
+          ToggleParState(); 
           // @TODO<-- Maybe I should build a par times class with par state and 
           // array of part times - and have functions on the class if function 
           // names of all objects I manipulate with my buttons are the same and 
           // on the same buttons - could use polymorphism? 
           break;
         case BUTTON_UP:
-          DEBUG_PRINTLN(F("UP/toggleParState()"), 0);
-          toggleParState();
+          DEBUG_PRINTLN(F("UP/ToggleParState()"), 0);
+          ToggleParState();
           break;
         }
       break;
@@ -1439,8 +1439,8 @@ void buttonListener(Adafruit_RGBLCDShield* g_lcd,
       switch (new_button) {
         case BUTTON_SELECT:
           DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
-          DEBUG_PRINTLN(F("SELECT/editPar"), 0);
-          editPar();
+          DEBUG_PRINTLN(F("SELECT/EditPar"), 0);
+          EditPar();
           break;
         case BUTTON_LEFT:
           DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
@@ -1448,38 +1448,38 @@ void buttonListener(Adafruit_RGBLCDShield* g_lcd,
           tm.select(); //@TODO: Bug here
           break;
         case BUTTON_DOWN:
-          DEBUG_PRINTLN(F("DOWN/parDown()"), 0);
+          DEBUG_PRINTLN(F("DOWN/ParDown()"), 0);
           DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
-          parDown(); 
+          ParDown(); 
           break;
         case BUTTON_UP:
-          DEBUG_PRINTLN(F("UP/parUp()"), 0);
+          DEBUG_PRINTLN(F("UP/ParUp()"), 0);
           DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
-          parUp();
+          ParUp();
           break;
         }
       break;
     case SETINDPAR:
       switch (new_button) {
         case BUTTON_SELECT:
-          DEBUG_PRINTLN(F("SELECT/editPar()"), 0);
-          editPar();
+          DEBUG_PRINTLN(F("SELECT/EditPar()"), 0);
+          EditPar();
           break;
         case BUTTON_RIGHT:
-          DEBUG_PRINTLN(F("RIGHT/rightCursor()"), 0);
-          rightCursor();
+          DEBUG_PRINTLN(F("RIGHT/RightCursor()"), 0);
+          RightCursor();
           break;
         case BUTTON_LEFT:
-          DEBUG_PRINTLN(F("LEFT/leftCursor()"), 0);
-          leftCursor();
+          DEBUG_PRINTLN(F("LEFT/LeftCursor()"), 0);
+          LeftCursor();
           break;
         case BUTTON_DOWN:
-          DEBUG_PRINTLN(F("DOWN/decreaseTime()"), 0);
-          decreaseTime();
+          DEBUG_PRINTLN(F("DOWN/DecreaseTime()"), 0);
+          DecreaseTime();
           break;
         case BUTTON_UP:
-          DEBUG_PRINTLN(F("UP/increaseTime()"), 0);
-          increaseTime();
+          DEBUG_PRINTLN(F("UP/IncreaseTime()"), 0);
+          IncreaseTime();
           break;
         }
       break;
@@ -1494,12 +1494,12 @@ void buttonListener(Adafruit_RGBLCDShield* g_lcd,
           tm.select(); //@TODO: Bug here
           break;
         case BUTTON_DOWN:
-          DEBUG_PRINTLN(F("DOWN/decreaseDelay()"), 0);
-          decreaseDelay(); 
+          DEBUG_PRINTLN(F("DOWN/DecreaseDelay()"), 0);
+          DecreaseDelay(); 
           break;
         case BUTTON_UP:
-          DEBUG_PRINTLN(F("UP/increaseDelay()"), 0);
-          increaseDelay();
+          DEBUG_PRINTLN(F("UP/IncreaseDelay()"), 0);
+          IncreaseDelay();
           break;
         }
       break;
@@ -1514,12 +1514,12 @@ void buttonListener(Adafruit_RGBLCDShield* g_lcd,
           tm.select(); 
           break;
         case BUTTON_DOWN:
-          DEBUG_PRINTLN(F("DOWN/decreaseBeepVol()"), 0);
-          increaseBeepVol();
+          DEBUG_PRINTLN(F("DOWN/DecreaseBeepVol()"), 0);
+          IncreaseBeepVol();
           break;
         case BUTTON_UP:
-          DEBUG_PRINTLN(F("UP/increaseBeepVol()"), 0);
-          decreaseBeepVol();
+          DEBUG_PRINTLN(F("UP/IncreaseBeepVol()"), 0);
+          DecreaseBeepVol();
           break;
         }
       break;
@@ -1534,12 +1534,12 @@ void buttonListener(Adafruit_RGBLCDShield* g_lcd,
           tm.select();
           break;
         case BUTTON_DOWN:
-          DEBUG_PRINTLN(F("DOWN/decreaseSensitivity())"), 0);
-          decreaseSensitivity();
+          DEBUG_PRINTLN(F("DOWN/DecreaseSensitivity())"), 0);
+          DecreaseSensitivity();
           break;
         case BUTTON_UP:
-          DEBUG_PRINTLN(F("UP/increaseSensitivity()"), 0);
-          increaseSensitivity();
+          DEBUG_PRINTLN(F("UP/IncreaseSensitivity()"), 0);
+          IncreaseSensitivity();
           break;
         }
       break;
@@ -1554,12 +1554,12 @@ void buttonListener(Adafruit_RGBLCDShield* g_lcd,
           tm.select();
           break;
         case BUTTON_DOWN:
-          DEBUG_PRINTLN(F("DOWN/decreaseEchoProtect();)"), 0);
-          decreaseEchoProtect();
+          DEBUG_PRINTLN(F("DOWN/DecreaseEchoProtect();)"), 0);
+          DecreaseEchoProtect();
           break;
         case BUTTON_UP:
-          DEBUG_PRINTLN(F("UP/increaseEchoProtect();"), 0);
-          increaseEchoProtect();
+          DEBUG_PRINTLN(F("UP/IncreaseEchoProtect();"), 0);
+          IncreaseEchoProtect();
           break;
         }
       break;
@@ -1570,10 +1570,10 @@ void buttonListener(Adafruit_RGBLCDShield* g_lcd,
 // Listen for Shots
 //////////////////////////////////////////////////////////
 
-void shotListener() {
+void ShotListener() {
   //DEBUG_PRINTLN(F("Listen-start:"),0);
-  if (sampleSound() >= g_threshold) {
-    recordShot();
+  if (SampleSound() >= g_threshold) {
+    RecordShot();
   }
   //DEBUG_PRINTLN(F("Listen-end:"),0);
 }
@@ -1585,14 +1585,14 @@ void shotListener() {
 void setup() {
   randomSeed(analogRead(1));
   DEBUG_SETUP();
-  //eepromSetup();
-  menuSetup();
-  lcdSetup();
+  //EEPROMSetup();
+  MenuSetup();
+  LCDSetup();
   DEBUG_PRINTLN(F("Setup Complete"), 0);
 }
 
 void loop() {
-  //Probably all button actions should come before runTimer()
-  buttonListener(&g_lcd, &g_buttons_state, &g_current_state); 
-  runTimer(&g_current_state, &g_par_enabled); 
+  //Probably all button actions should come before RunTimer()
+  ButtonListener(&g_lcd, &g_buttons_state, &g_current_state); 
+  RunTimer(&g_current_state, &g_par_enabled); 
 } 
