@@ -245,11 +245,11 @@ void renderMenu() {
   g_lcd.setBacklight(WHITE);
   g_lcd.clear();
   g_lcd.setCursor(0, 0);
-  lcdPrint_p(&g_lcd, kMenu->get_name()); // g_lcd.print(F("Shot Timer v.3"));
+  lcd_print_p(&g_lcd, kMenu->get_name()); // g_lcd.print(F("Shot Timer v.3"));
   DEBUG_PRINT(F("Rendering Menu: "));
   DEBUG_PRINTLN_P(kMenu->get_name(),0);
   g_lcd.setCursor(0, 1);
-  lcdPrint_p(&g_lcd, kMenu->get_selected()->get_name());
+  lcd_print_p(&g_lcd, kMenu->get_selected()->get_name());
   DEBUG_PRINT(F("Rendering Item: "));
   DEBUG_PRINTLN_P(kMenu->get_selected()->get_name(),0);
 }
@@ -401,9 +401,9 @@ void recordShot() {
   //serialPrintln(shotTimer.elapsed());
   //serialPrintln(g_shot_chrono.elapsed(), 9);
   g_lcd.setCursor(13, 0);
-  lcdPrint(&g_lcd, g_current_shot + 1, 3);
+  lcd_print(&g_lcd, g_current_shot + 1, 3);
   g_lcd.setCursor(6, 1);
-  lcdPrintTime(&g_lcd, g_shot_times[g_current_shot], 9); 
+  lcd_print_time(&g_lcd, g_shot_times[g_current_shot], 9); 
   g_current_shot += 1;
   if (g_current_shot == kShotLimit) { 
     DEBUG_PRINTLN(F("Out of room for shots"),0);
@@ -440,13 +440,13 @@ void on_menu_review_selected(MenuItem* p_menu_item) {
     g_lcd.setCursor(9, 0);
     g_lcd.print(F(" Split "));
     g_lcd.setCursor(0, 1);
-    lcdPrintTime(&g_lcd, g_shot_times[g_review_shot], 9);
+    lcd_print_time(&g_lcd, g_shot_times[g_review_shot], 9);
     g_lcd.print(F(" "));
     if (g_review_shot == 0) {
       g_lcd.print(F("   1st"));
     }
     if (g_review_shot > 1) {
-      lcdPrintTime(&g_lcd, g_shot_times[g_review_shot] - g_shot_times[g_review_shot - 1], 6);
+      lcd_print_time(&g_lcd, g_shot_times[g_review_shot] - g_shot_times[g_review_shot - 1], 6);
     }
     DEBUG_PRINTLN(tm.get_current_menu()->get_name(),0);
   } else {
@@ -478,13 +478,13 @@ void nextShot() {
   g_lcd.setCursor(9, 0);
   g_lcd.print(F(" Split "));
   g_lcd.setCursor(0, 1);
-  lcdPrintTime(&g_lcd, g_shot_times[g_review_shot], 9);
+  lcd_print_time(&g_lcd, g_shot_times[g_review_shot], 9);
   g_lcd.print(F(" "));
   if (g_review_shot == 0) {
     g_lcd.print(F("   1st"));
   }
   else {
-    lcdPrintTime(&g_lcd, g_shot_times[g_review_shot] - g_shot_times[g_review_shot - 1], 6);
+    lcd_print_time(&g_lcd, g_shot_times[g_review_shot] - g_shot_times[g_review_shot - 1], 6);
   }
 }
 
@@ -513,13 +513,13 @@ void previousShot() {
   g_lcd.setCursor(9, 0);
   g_lcd.print(F(" Split "));
   g_lcd.setCursor(0, 1);
-  lcdPrintTime(&g_lcd, g_shot_times[g_review_shot], 9);
+  lcd_print_time(&g_lcd, g_shot_times[g_review_shot], 9);
   g_lcd.print(F(" "));
   if (g_review_shot == 0) {
     g_lcd.print(F("   1st"));
   }
   else {
-    lcdPrintTime(&g_lcd, g_shot_times[g_review_shot] - g_shot_times[g_review_shot - 1], 6);
+    lcd_print_time(&g_lcd, g_shot_times[g_review_shot] - g_shot_times[g_review_shot - 1], 6);
   }
 }
 
@@ -541,7 +541,7 @@ void rateOfFire(boolean includeDraw = true) {
   g_lcd.setCursor(0, 0);
   g_lcd.print(F("Avg Split:"));
   g_lcd.setCursor(11, 0);
-  lcdPrintTime(&g_lcd, rof, 6);
+  lcd_print_time(&g_lcd, rof, 6);
   g_lcd.setCursor(0, 1);
   g_lcd.print(F("                "));
   g_lcd.setCursor(0, 1);
@@ -661,7 +661,7 @@ void on_menu_buzzer_selected(MenuItem* p_menu_item) {
     g_lcd.setCursor(0, 0);
     g_lcd.print(F("Buzzer Volume"));
     g_lcd.setCursor(0, 1);
-    lcdPrint(&g_lcd, g_beep_vol, 2);
+    lcd_print(&g_lcd, g_beep_vol, 2);
   }
   else {
     DEBUG_PRINTLN(F("Save BeepVol and Return to Menu"), 0);
@@ -684,7 +684,7 @@ void increaseBeepVol() {
     g_beep_vol++;
   }
   g_lcd.setCursor(0, 1);
-  lcdPrint(&g_lcd, g_beep_vol, 2);
+  lcd_print(&g_lcd, g_beep_vol, 2);
   //@TODO REplace with a single PROGMEM clear buffer
   g_lcd.print(F("                "));
 }
@@ -702,7 +702,7 @@ void decreaseBeepVol() {
     g_beep_vol--;
   }
   g_lcd.setCursor(0, 1);
-  lcdPrint(&g_lcd, g_beep_vol, 2);
+  lcd_print(&g_lcd, g_beep_vol, 2);
   g_lcd.print(F("                "));
 }
 
@@ -718,7 +718,7 @@ void on_menu_sensitivity_selected(MenuItem* p_menu_item) {
     g_lcd.setCursor(0, 0);
     g_lcd.print(F("Sensitivity"));
     g_lcd.setCursor(0, 1);
-    lcdPrint(&g_lcd, g_sensitivity, 2);
+    lcd_print(&g_lcd, g_sensitivity, 2);
   }
   else {
     DEBUG_PRINTLN(F("Save Sensitivity and Return to Menu"), 0);
@@ -742,7 +742,7 @@ void increaseSensitivity() {
   }
   sensToThreshold();
   g_lcd.setCursor(0, 1);
-  lcdPrint(&g_lcd, g_sensitivity, 2);
+  lcd_print(&g_lcd, g_sensitivity, 2);
   g_lcd.print(F("                "));
 }
 
@@ -760,7 +760,7 @@ void decreaseSensitivity() {
   }
   sensToThreshold();
   g_lcd.setCursor(0, 1);
-  lcdPrint(&g_lcd, g_sensitivity, 2);
+  lcd_print(&g_lcd, g_sensitivity, 2);
   g_lcd.print(F("                "));
 }
 
@@ -893,7 +893,7 @@ void on_menu_par_times_selected(MenuItem* p_menu_item) {
     g_lcd.setCursor(5, 0);
     g_lcd.print(F("Par"));
     g_lcd.setCursor(9, 0);
-    lcdPrint(&g_lcd, (g_current_par + 1), 2);
+    lcd_print(&g_lcd, (g_current_par + 1), 2);
     g_lcd.setCursor(4, 1);
     if (g_current_par > 0) {
       g_lcd.print(F("+"));
@@ -901,7 +901,7 @@ void on_menu_par_times_selected(MenuItem* p_menu_item) {
     else {
       g_lcd.print(F(" "));
     }
-    lcdPrintTime(&g_lcd, g_par_times[g_current_par], 9);
+    lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
     DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
   }
   else {
@@ -924,7 +924,7 @@ void parUp() {
     g_current_par--;
   }
   g_lcd.setCursor(9, 0);
-  lcdPrint(&g_lcd, (g_current_par + 1), 2);
+  lcd_print(&g_lcd, (g_current_par + 1), 2);
   g_lcd.setCursor(4, 1);
   if (g_current_par > 0) {
     g_lcd.print(F("+"));
@@ -932,7 +932,7 @@ void parUp() {
   else {
     g_lcd.print(F(" "));
   }
-  lcdPrintTime(&g_lcd, g_par_times[g_current_par], 9);
+  lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
   DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
 }
 
@@ -950,7 +950,7 @@ void parDown() {
     g_current_par++;
   }
   g_lcd.setCursor(9, 0);
-  lcdPrint(&g_lcd, (g_current_par + 1), 2);
+  lcd_print(&g_lcd, (g_current_par + 1), 2);
   g_lcd.setCursor(4, 1);
   if (g_current_par > 0) {
     g_lcd.print(F("+"));
@@ -958,7 +958,7 @@ void parDown() {
   else {
     g_lcd.print(F(" "));
   }
-  lcdPrintTime(&g_lcd, g_par_times[g_current_par], 9);
+  lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
   DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
 }
 
@@ -975,7 +975,7 @@ void editPar() {
     g_lcd.print(F("Edit        "));
     g_lcd.setCursor(0, 1);
     g_lcd.print(F("P"));
-    lcdPrint(&g_lcd, g_current_par + 1, 2);
+    lcd_print(&g_lcd, g_current_par + 1, 2);
     if (g_current_par > 0) {
       g_lcd.print(F(" +"));
     }
@@ -983,7 +983,7 @@ void editPar() {
       g_lcd.print(F("  "));
     }
     g_lcd.setCursor(5, 1);
-    lcdPrintTime(&g_lcd, g_par_times[g_current_par], 9);
+    lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
     g_par_cursor = 4; //reset cursor to the seconds position
     lcdCursor();
   }
@@ -1133,7 +1133,7 @@ void increaseTime() {
       break;
   }
   g_lcd.setCursor(5, 1);
-  lcdPrintTime(&g_lcd, g_par_times[g_current_par], 9);
+  lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
 }
 
 /////////////////////////////////////////////////////////////
@@ -1201,7 +1201,7 @@ void decreaseTime() {
       break;
   }
   g_lcd.setCursor(5, 1);
-  lcdPrintTime(&g_lcd, g_par_times[g_current_par], 9);
+  lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
 }
 
 /////////////////////////////////////////////////////////////

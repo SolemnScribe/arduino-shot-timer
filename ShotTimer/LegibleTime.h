@@ -36,9 +36,9 @@
   // http://stackoverflow.com/questions/1726298/strip-first-and-last-character-from-c-string
   /////////////////////////////////////////////////////////////
 
-  // @TODO: fitDigits() 
+  // @TODO: fit_digits() 
   // num of digits must include punctuation - format "00:00:00.000"
-  void fitDigits(char *str, int digits) 
+  void fit_digits(char *str, int digits) 
   {
     size_t len = strlen(str);
     //assert(len >= 2); // or whatever you want to do with short strings
@@ -52,7 +52,7 @@
   }
   // formerly called print2digits: 
   // http://arduino.cc/forum/index.php?topic=64024.30
-  void convertNum(uint32_t num, byte digits, char* str) 
+  void convert_num(uint32_t num, byte digits, char* str) 
   {
     DEBUG_PRINTLN(F("Making this num legible:"),0);
     DEBUG_PRINTLN(num,0);
@@ -71,7 +71,7 @@
     }
     DEBUG_PRINTLN(str, 0);
     DEBUG_PRINT(F("Stripping digits to: ")); DEBUG_PRINTLN(digits,0);
-    fitDigits(str, digits);
+    fit_digits(str, digits);
     DEBUG_PRINTLN(str, 0);
     DEBUG_PRINTLN(F("Done Converting Num"), 0);
   }
@@ -87,7 +87,7 @@
   
   // formerly called print2digits: 
   // http://arduino.cc/forum/index.php?topic=64024.30
-  void convertTime(uint32_t te, byte digits, char* str) 
+  void convert_time(uint32_t te, byte digits, char* str) 
   {
     // byte h, m, s // Can we store these and do UL math on them?
     DEBUG_PRINTLN(F("Making this time legible:"),0);
@@ -158,7 +158,7 @@
     }
     DEBUG_PRINTLN(str, 0);
     DEBUG_PRINT(F("Stripping digits to: ")); DEBUG_PRINTLN(digits,0);
-    fitDigits(str, digits);
+    fit_digits(str, digits);
     DEBUG_PRINTLN(str, 0);
     DEBUG_PRINTLN(F("Done Converting Time"), 0);
   }

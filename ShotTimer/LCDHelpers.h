@@ -53,7 +53,7 @@
   // PROGMEM Helper - Print a string from PROGMEM to an LCD Screen
   /////////////////////////////////////////////////////////////
   
-  void lcdPrint_p(Adafruit_RGBLCDShield* lcd, const char * kStr)
+  void lcd_print_p(Adafruit_RGBLCDShield* lcd, const char * kStr)
   {
     char c;
     if (!kStr)
@@ -68,26 +68,26 @@
   // Print to an LCD
   /////////////////////////////////////////////////////////////
   
-  void lcdPrint(Adafruit_RGBLCDShield* lcd, uint32_t t, byte digits)
+  void lcd_print(Adafruit_RGBLCDShield* lcd, uint32_t t, byte digits)
   {
     DEBUG_PRINT(F("Printing to LCD:"));
-    char lcdOutput[11];
-    convertNum(t, digits, lcdOutput);
-    DEBUG_PRINTLN(lcdOutput,0);
-    lcd->print(lcdOutput);
+    char lcd_output[11];
+    convert_num(t, digits, lcd_output);
+    DEBUG_PRINTLN(lcd_output,0);
+    lcd->print(lcd_output);
   }
   
   /////////////////////////////////////////////////////////////
   // Print time to an LCD screen
   /////////////////////////////////////////////////////////////
   
-  void lcdPrintTime(Adafruit_RGBLCDShield* lcd, uint32_t t, byte digits)
+  void lcd_print_time(Adafruit_RGBLCDShield* lcd, uint32_t t, byte digits)
   {
     DEBUG_PRINTLN(F("Printing Time to LCD"),0);
-    char lcdOutput[11];
-    convertTime(t, digits, lcdOutput);
-    DEBUG_PRINTLN(lcdOutput,0);
-    lcd->print(lcdOutput);
+    char lcd_output[11];
+    convert_time(t, digits, lcd_output);
+    DEBUG_PRINTLN(lcd_output,0);
+    lcd->print(lcd_output);
   }
   
 #endif // LCDHELPERS_H_
