@@ -177,7 +177,7 @@ const int PROGMEM kShotLimit = 200;
 ////////////////////////////////////////////////////////////
 
 byte g_delay_time = 11;
-byte g_beep_vol = 0;
+byte g_beep_vol = 10;
 byte g_sensitivity = 1;
 byte g_sample_window = 50;
 // do we want to instantiate the size in setup()
@@ -196,10 +196,11 @@ byte g_par_cursor = 1;
 //////////////////////////////
 // EEPROM HAS 100,000 READ/WRITE CYCLES, conservatively
 // http://tronixstuff.wordpress.com/2011/05/11/discovering-arduinos-internal-eeprom-lifespan/
-uint8_e g_delay_setting_e;  // Can be 0
-uint8_e g_beep_setting_e;  // Can be 0
-uint8_e g_sens_setting_e;  // Can be 0
-uint8_e g_sample_setting_e; //Cannot be 0  
+uint8_e g_delay_setting_e;   // Can be 0
+bool_e g_rof_draw_setting_e; // Can be 0 or 1
+uint8_e g_beep_setting_e;    // Can be 0
+uint8_e g_sens_setting_e;    // Can be 0
+uint8_e g_sample_setting_e;  //Cannot be 0  
 // ECHO REJECT: Sample window width in mS (50 mS = 20Hz) for function 
 // SampleSound()
 
@@ -706,7 +707,8 @@ void on_menu_rof_selected(MenuItem* p_menu_item) {
     }
   }
   else {
-    DEBUG_PRINTLN(F("Return to Menu"), 0);
+    DEBUG_PRINTLN(F("Save g_include_draw and Return to Menu"), 0);
+    g_rof_draw_setting_e = g_include_draw;
     g_current_state = MENU;
     DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(g_current_state,0);
     RenderMenu();
@@ -1331,6 +1333,9 @@ void EEPROMSetup() {
     g_delay_setting_e = g_delay_time;
       DEBUG_PRINTLN(F("Set g_delay_setting_e to "), 0);
       DEBUG_PRINTLN(g_delay_time, 0);
+    g_rof_draw_setting_e = g_include_draw;
+      DEBUG_PRINTLN(F("Set g_rof_draw_setting_e to "), 0);
+      DEBUG_PRINTLN(g_include_draw, 0);
     g_beep_setting_e = g_beep_vol;
       DEBUG_PRINTLN(F("Set g_beep_setting_e to "), 0);
       DEBUG_PRINTLN(g_beep_vol, 0);
@@ -1346,6 +1351,9 @@ void EEPROMSetup() {
     g_delay_time = g_delay_setting_e;
       DEBUG_PRINTLN(F("Set g_delay_time to "), 0);
       DEBUG_PRINTLN(g_delay_time, 0);
+    g_include_draw = g_rof_draw_setting_e;
+      DEBUG_PRINTLN(F("Set g_include_draw to "), 0);
+      DEBUG_PRINTLN(g_rof_draw_setting_e, 0);
     g_beep_vol = g_beep_setting_e;
       DEBUG_PRINTLN(F("Set g_beep_vol to "), 0);
       DEBUG_PRINTLN(g_beep_vol, 0);
@@ -1693,7 +1701,7 @@ void ShotListener() {
 void setup() {
   randomSeed(analogRead(1));
   DEBUG_SETUP();
-  //EEPROMSetup();
+  EEPROMSetup();
   MenuSetup();
   LCDSetup();
   DEBUG_PRINTLN(F("Setup Complete"), 0);
