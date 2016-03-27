@@ -142,7 +142,7 @@ const int16_p PROGMEM kBeepNote = NOTE_C4;
 // https://github.com/Chris--A/PGMWrap/blob/master/examples/advanced/use_within_classes/use_within_classes.ino 
 // More detailed example of dealing with strings and arrays in PROGMEM:
 // http://www.gammon.com.au/progmem
-const char PROGMEM kMainName[] = "Shot Timer v.3";
+const char PROGMEM kMainName[] = "Shot Timer v.2";
 const char PROGMEM kStartName[] = "[Start]";
 const char PROGMEM kReviewName[] = "[Review]";
 const char PROGMEM kParName[] = "Set Par >>";
@@ -997,11 +997,11 @@ void on_menu_par_times_selected(MenuItem* p_menu_item) {
 }
 
 //////////////////////////////
-// ParUp()
+// ParDown()
 //////////////////////////////
 
-void ParUp() {
-  DEBUG_PRINTLN(F("ParUp()"), 0);
+void ParDown() {
+  DEBUG_PRINTLN(F("ParDown()"), 0);
   if (g_current_par == 0) {
     g_current_par = kParLimit - 1;
   }
@@ -1022,11 +1022,11 @@ void ParUp() {
 }
 
 //////////////////////////////
-// ParDown()
+// ParUp()
 //////////////////////////////
 
-void ParDown() {
-  DEBUG_PRINTLN(F("ParDown()"), 1);
+void ParUp() {
+  DEBUG_PRINTLN(F("ParUp()"), 1);
   DEBUG_PRINTLN(kParLimit,0);
   if (g_current_par == kParLimit - 1) {
     g_current_par = 0;
@@ -1492,14 +1492,14 @@ void ButtonListener(Adafruit_RGBLCDShield* g_lcd,
           NextShot();
           break;
         case BUTTON_DOWN:
-          DEBUG_PRINTLN(F("DOWN/NextShot()"), 0);
-          NextShot(); 
+          DEBUG_PRINTLN(F("DOWN/PreviousShot()"), 0);
+          PreviousShot();
           //@TODO<-- Maybe I should be building a shot string class, with 
           //functions, rather than using functions to operate on a global array. 
           break;
         case BUTTON_UP:
-          DEBUG_PRINTLN(F("UP/PreviousShot()"), 0);
-          PreviousShot();
+          DEBUG_PRINTLN(F("UP/NextShot()"), 0);
+          NextShot();
           break;
         }
       break;
@@ -1631,11 +1631,11 @@ void ButtonListener(Adafruit_RGBLCDShield* g_lcd,
           break;
         case BUTTON_DOWN:
           DEBUG_PRINTLN(F("DOWN/DecreaseBeepVol()"), 0);
-          IncreaseBeepVol();
+          DecreaseBeepVol();
           break;
         case BUTTON_UP:
           DEBUG_PRINTLN(F("UP/IncreaseBeepVol()"), 0);
-          DecreaseBeepVol();
+          IncreaseBeepVol();
           break;
         }
       break;
