@@ -32,8 +32,8 @@
 /////////////////////////////////////////
 // Current Flaws:
 // shotListener(); probably could be redesigned to run on a timer interupt.
-// as a result, the parTimes beep may come as early or late as half the sample 
-// window time. However, at most reasonable sampleWindows this will likely be 
+// as a result, the g_par_times beep may come as early or late as half the sample 
+// window time. However, at most reasonable g_sample_windows this will likely be 
 // indistinguishable to the user
 //
 // ParTimes are not saved to EEPROM, as their frequent updating is more likely 
@@ -179,18 +179,18 @@ uint8_e g_sample_setting_e; //Cannot be 0
 /////////////////////////////////////////
 // GLOBAL VARIABLES
 /////////////////////////////////////////
-byte delayTime = 11;
-byte beepVol = 0;
-byte sensitivity = 1;
-byte sampleWindow = 50;
-uint32_t shotTimes[kShotLimit]; // do we want to instantiate the size in setup()
-unsigned long parTimes[kParLimit]; 
-uint32_t additivePar;
-byte currentShot; // REFACTOR, MAY NOT NEED TO BE GLOBAL
-byte reviewShot;  // REFACTOR, MAY NOT NEED TO BE GLOBAL
-byte currentPar;  // REFACTOR, MAY NOT NEED TO BE GLOBAL
-int threshold = 625; // The sensitivity is converted to a threshold value
-byte parCursor = 1;
+byte g_delay_time = 11;
+byte g_beep_vol = 0;
+byte g_sensitivity = 1;
+byte g_sample_window = 50;
+uint32_t g_shot_times[kShotLimit]; // do we want to instantiate the size in setup()
+unsigned long g_par_times[kParLimit]; 
+uint32_t g_additive_par;
+byte g_current_shot; // REFACTOR, MAY NOT NEED TO BE GLOBAL
+byte g_review_shot;  // REFACTOR, MAY NOT NEED TO BE GLOBAL
+byte g_current_par;  // REFACTOR, MAY NOT NEED TO BE GLOBAL
+int g_threshold = 625; // The g_sensitivity is converted to a g_threshold value
+byte g_par_cursor = 1;
 
 ///////////////
 // Program State Variables
@@ -266,8 +266,8 @@ int sampleSound() {
   int signalMax = 0;
   int signalMin = 1024;
 
-  // collect data for duration of sampleWindow
-  while (millis() - startMillis < sampleWindow)
+  // collect data for duration of g_sample_window
+  while (millis() - startMillis < g_sample_window)
   {
     sample = analogRead(kMicPin);
     if (sample < 1024) // toss out spurious readings
@@ -300,12 +300,12 @@ void on_menuStart_selected(MenuItem* p_menu_item) {
   DEBUG_PRINTLN(F("Starting Timer"),1);
   g_current_state = TIMER;
   lcd.setBacklight(GREEN);
-  // reset the values of the array of shots to 0 NOT <= because currentShot is 
+  // reset the values of the array of shots to 0 NOT <= because g_current_shot is 
   // incremented at the end of the last one recorded
-  for (int c = 0; c < currentShot; c++) { 
-    shotTimes[c] = 0;
+  for (int c = 0; c < g_current_shot; c++) { 
+    g_shot_times[c] = 0;
   }
-  currentShot = 0; //start with the first shot in the array
+  g_current_shot = 0; //start with the first shot in the array
   lcd.setCursor(0, 0);
   lcd.print(F("Wait for it...  "));
   lcd.setCursor(0, 1);
@@ -344,19 +344,19 @@ void parBeeps(boolean* parState)
     //DEBUG_PRINTLN(*parState, 0);
     if (*parState == true) {
       DEBUG_PRINTLN(F("...check for par beep..."),0)
-      additivePar = 0;
+      g_additive_par = 0;
       for (byte i = 0; i < kParLimit; i++) {
-        if (parTimes[i] == 0) {
+        if (g_par_times[i] == 0) {
           break;
         }
-        additivePar += parTimes[i]; // add the parTimes together
-        //if (shotTimer.elapsed() <= (additivePar + (sampleWindow / 2)) 
-        //&& shotTimer.elapsed() >= (additivePar - sampleWindow / 2)){
+        g_additive_par += g_par_times[i]; // add the g_par_times together
+        //if (shotTimer.elapsed() <= (g_additive_par + (g_sample_window / 2)) 
+        //&& shotTimer.elapsed() >= (g_additive_par - g_sample_window / 2)){
         int timeElapsed = shot_chrono.elapsed();
         // Beep if the current time matches the parTime
         // (within the boundaries of sample window) 
-        if (timeElapsed <= (additivePar + (sampleWindow / 2)) 
-          && timeElapsed >= (additivePar - sampleWindow / 2)) {
+        if (timeElapsed <= (g_additive_par + (g_sample_window / 2)) 
+          && timeElapsed >= (g_additive_par - g_sample_window / 2)) {
           DEBUG_PRINTLN(F("PAR BEEP!"),0);
           BEEP();  
         }
@@ -379,7 +379,7 @@ void stopTimer(boolean out = 0) {
   DEBUG_PRINTLN(F("Timer was stopped at:"), 0);
   shot_chrono.elapsed(); // for DEBUG
   for (int i = 0; i < 5; i++) {
-    toneAC(kBeepNote, beepVol, 100, false); 
+    toneAC(kBeepNote, g_beep_vol, 100, false); 
     delay(50);
   }
   if (out == 1) {
@@ -395,17 +395,17 @@ void stopTimer(boolean out = 0) {
 //////////////////////////////////////////////////////////
 
 void recordShot() {
-  shotTimes[currentShot] = shot_chrono.elapsed();
-  DEBUG_PRINT(F("Shot #")); DEBUG_PRINT(currentShot + 1); DEBUG_PRINT(F(" - "));
+  g_shot_times[g_current_shot] = shot_chrono.elapsed();
+  DEBUG_PRINT(F("Shot #")); DEBUG_PRINT(g_current_shot + 1); DEBUG_PRINT(F(" - "));
   DEBUG_PRINT(F("\n"));
   //serialPrintln(shotTimer.elapsed());
   //serialPrintln(shot_chrono.elapsed(), 9);
   lcd.setCursor(13, 0);
-  lcdPrint(&lcd, currentShot + 1, 3);
+  lcdPrint(&lcd, g_current_shot + 1, 3);
   lcd.setCursor(6, 1);
-  lcdPrintTime(&lcd, shotTimes[currentShot], 9); 
-  currentShot += 1;
-  if (currentShot == kShotLimit) { 
+  lcdPrintTime(&lcd, g_shot_times[g_current_shot], 9); 
+  g_current_shot += 1;
+  if (g_current_shot == kShotLimit) { 
     DEBUG_PRINTLN(F("Out of room for shots"),0);
     stopTimer(1);
   }
@@ -421,32 +421,32 @@ void on_menuReview_selected(MenuItem* p_menu_item) {
     DEBUG_PRINTLN(g_current_state, 0);
     g_current_state = REVIEW;
     DEBUG_PRINTLN(g_current_state, 0);
-    if (currentShot > 0) {
-      reviewShot = currentShot - 1;
+    if (g_current_shot > 0) {
+      g_review_shot = g_current_shot - 1;
     }
-    DEBUG_PRINT(F("Reviewing Shot: ")); DEBUG_PRINTLN(reviewShot,0);
+    DEBUG_PRINT(F("Reviewing Shot: ")); DEBUG_PRINTLN(g_review_shot,0);
     //DEBUG FOR LOOP - PRINT ALL SHOT TIMES IN THE STRING TO SERIAL 
-    for (int t = 0; t < currentShot; t++) {
+    for (int t = 0; t < g_current_shot; t++) {
       DEBUG_PRINT(F("Shot #"));
       DEBUG_PRINT(t + 1);
       DEBUG_PRINT(F(" - "));
-      shotTimes[t]; // for DEBUG
+      g_shot_times[t]; // for DEBUG
     }
     lcd.setBacklight(VIOLET);
     lcd.setCursor(0, 0);
     lcd.print(F("Shot #"));
-    lcd.print(currentShot);
+    lcd.print(g_current_shot);
     lcd.print(F("                "));
     lcd.setCursor(9, 0);
     lcd.print(F(" Split "));
     lcd.setCursor(0, 1);
-    lcdPrintTime(&lcd, shotTimes[reviewShot], 9);
+    lcdPrintTime(&lcd, g_shot_times[g_review_shot], 9);
     lcd.print(F(" "));
-    if (reviewShot == 0) {
+    if (g_review_shot == 0) {
       lcd.print(F("   1st"));
     }
-    if (reviewShot > 1) {
-      lcdPrintTime(&lcd, shotTimes[reviewShot] - shotTimes[reviewShot - 1], 6);
+    if (g_review_shot > 1) {
+      lcdPrintTime(&lcd, g_shot_times[g_review_shot] - g_shot_times[g_review_shot - 1], 6);
     }
     DEBUG_PRINTLN(tm.get_current_menu()->get_name(),0);
   } else {
@@ -466,25 +466,25 @@ void nextShot() {
   DEBUG_PRINTLN(g_current_state, 0);
   lcd.setCursor(0, 0);
   lcd.print(F("Shot #"));
-  if (currentShot == 0 || reviewShot == currentShot - 1) {
-    reviewShot = 0;
-    lcd.print(reviewShot + 1);
+  if (g_current_shot == 0 || g_review_shot == g_current_shot - 1) {
+    g_review_shot = 0;
+    lcd.print(g_review_shot + 1);
   }
   else {
-    reviewShot++;
-    lcd.print(reviewShot + 1);
+    g_review_shot++;
+    lcd.print(g_review_shot + 1);
   }
   lcd.print(F("                "));
   lcd.setCursor(9, 0);
   lcd.print(F(" Split "));
   lcd.setCursor(0, 1);
-  lcdPrintTime(&lcd, shotTimes[reviewShot], 9);
+  lcdPrintTime(&lcd, g_shot_times[g_review_shot], 9);
   lcd.print(F(" "));
-  if (reviewShot == 0) {
+  if (g_review_shot == 0) {
     lcd.print(F("   1st"));
   }
   else {
-    lcdPrintTime(&lcd, shotTimes[reviewShot] - shotTimes[reviewShot - 1], 6);
+    lcdPrintTime(&lcd, g_shot_times[g_review_shot] - g_shot_times[g_review_shot - 1], 6);
   }
 }
 
@@ -497,29 +497,29 @@ void previousShot() {
   DEBUG_PRINTLN(g_current_state, 0);
   lcd.setCursor(0, 0);
   lcd.print(F("Shot #"));
-  if (currentShot == 0) {
-    reviewShot = 0;
-    lcd.print(reviewShot);
+  if (g_current_shot == 0) {
+    g_review_shot = 0;
+    lcd.print(g_review_shot);
   }
-  else if (reviewShot == 0) {
-    reviewShot = currentShot - 1;
-    lcd.print(reviewShot + 1);
+  else if (g_review_shot == 0) {
+    g_review_shot = g_current_shot - 1;
+    lcd.print(g_review_shot + 1);
   }
   else {
-    reviewShot--;
-    lcd.print(reviewShot + 1);
+    g_review_shot--;
+    lcd.print(g_review_shot + 1);
   }
   lcd.print(F("                "));
   lcd.setCursor(9, 0);
   lcd.print(F(" Split "));
   lcd.setCursor(0, 1);
-  lcdPrintTime(&lcd, shotTimes[reviewShot], 9);
+  lcdPrintTime(&lcd, g_shot_times[g_review_shot], 9);
   lcd.print(F(" "));
-  if (reviewShot == 0) {
+  if (g_review_shot == 0) {
     lcd.print(F("   1st"));
   }
   else {
-    lcdPrintTime(&lcd, shotTimes[reviewShot] - shotTimes[reviewShot - 1], 6);
+    lcdPrintTime(&lcd, g_shot_times[g_review_shot] - g_shot_times[g_review_shot - 1], 6);
   }
 }
 
@@ -532,9 +532,9 @@ void rateOfFire(boolean includeDraw = true) {
   DEBUG_PRINTLN(F("rateofFire()"), 0);
   unsigned int rof;
   if (!includeDraw) {
-    rof = (shotTimes[currentShot - 1] - shotTimes[0]) / (currentShot - 1);
+    rof = (g_shot_times[g_current_shot - 1] - g_shot_times[0]) / (g_current_shot - 1);
   }
-  else rof = shotTimes[currentShot - 1] / (currentShot - 1);
+  else rof = g_shot_times[g_current_shot - 1] / (g_current_shot - 1);
 
   lcd.setCursor(0, 0);
   lcd.print(F("                "));
@@ -564,19 +564,19 @@ void on_menuStartDelay_selected(MenuItem* p_menu_item) {
     lcd.setCursor(0, 0);
     lcd.print(F("Start Delay"));
     lcd.setCursor(0, 1);
-    if (delayTime > 11) {
+    if (g_delay_time > 11) {
       lcd.print(F("Random 2-6s"));
     }
-    else if (delayTime == 11) {
+    else if (g_delay_time == 11) {
       lcd.print(F("Random 1-4s"));
     }
     else {
-      lcd.print(delayTime);
+      lcd.print(g_delay_time);
     }
   }
   else {
     DEBUG_PRINTLN(F("Save Delay and Return to Menu"), 0);
-    g_delay_setting_e = delayTime;
+    g_delay_setting_e = g_delay_time;
     g_current_state = MENU;
     renderMenu();
   }
@@ -588,21 +588,21 @@ void on_menuStartDelay_selected(MenuItem* p_menu_item) {
 
 void increaseDelay() {
   DEBUG_PRINTLN(F("increaseDelay()"), 0);
-  if (delayTime == 12) {
-    delayTime = 0;
+  if (g_delay_time == 12) {
+    g_delay_time = 0;
   }
   else {
-    delayTime++;
+    g_delay_time++;
   }
   lcd.setCursor(0, 1);
-  if (delayTime > 11) {
+  if (g_delay_time > 11) {
     lcd.print(F("Random 2-6s"));
   }
-  else if (delayTime == 11) {
+  else if (g_delay_time == 11) {
     lcd.print(F("Random 1-4s"));
   }
   else {
-    lcd.print(delayTime);
+    lcd.print(g_delay_time);
   }
   lcd.print(F("                "));
 }
@@ -613,21 +613,21 @@ void increaseDelay() {
 
 void decreaseDelay() {
   DEBUG_PRINTLN(F("decreaseDelay()"), 0);
-  if (delayTime == 0) {
-    delayTime = 12;
+  if (g_delay_time == 0) {
+    g_delay_time = 12;
   }
   else {
-    delayTime--;
+    g_delay_time--;
   }
   lcd.setCursor(0, 1);
-  if (delayTime > 11) {
+  if (g_delay_time > 11) {
     lcd.print(F("Random 2-6s"));
   }
-  else if (delayTime == 11) {
+  else if (g_delay_time == 11) {
     lcd.print(F("Random 1-4s"));
   }
   else {
-    lcd.print(delayTime);
+    lcd.print(g_delay_time);
   }
   lcd.print(F("                "));
 }
@@ -637,15 +637,15 @@ void decreaseDelay() {
 /////////////////////////////////////////////////////////////
 
 void startDelay() {
-  DEBUG_PRINT(F("Start Delay: ")); DEBUG_PRINTLN(delayTime, 0);
-  if (delayTime > 11) {
+  DEBUG_PRINT(F("Start Delay: ")); DEBUG_PRINTLN(g_delay_time, 0);
+  if (g_delay_time > 11) {
     delay(random(2000, 6001)); //from 2 to 6 seconds
   }
-  else if (delayTime == 11) {
+  else if (g_delay_time == 11) {
     delay(random(1000, 4001)); //from 1 to 4 seconds
   }
   else {
-    delay(delayTime * 1000); //fixed number of seconds
+    delay(g_delay_time * 1000); //fixed number of seconds
   }
 }
 
@@ -661,11 +661,11 @@ void on_menuBuzzer_selected(MenuItem* p_menu_item) {
     lcd.setCursor(0, 0);
     lcd.print(F("Buzzer Volume"));
     lcd.setCursor(0, 1);
-    lcdPrint(&lcd, beepVol, 2);
+    lcdPrint(&lcd, g_beep_vol, 2);
   }
   else {
     DEBUG_PRINTLN(F("Save BeepVol and Return to Menu"), 0);
-    g_beep_setting_e = beepVol;
+    g_beep_setting_e = g_beep_vol;
     g_current_state = MENU;
     renderMenu();
   }
@@ -677,14 +677,14 @@ void on_menuBuzzer_selected(MenuItem* p_menu_item) {
 
 void increaseBeepVol() {
   DEBUG_PRINTLN(F("increaseBeepVoly()"), 0);
-  if (beepVol == 10) {
-    beepVol = 0;
+  if (g_beep_vol == 10) {
+    g_beep_vol = 0;
   }
   else {
-    beepVol++;
+    g_beep_vol++;
   }
   lcd.setCursor(0, 1);
-  lcdPrint(&lcd, beepVol, 2);
+  lcdPrint(&lcd, g_beep_vol, 2);
   //@TODO REplace with a single PROGMEM clear buffer
   lcd.print(F("                "));
 }
@@ -695,14 +695,14 @@ void increaseBeepVol() {
 
 void decreaseBeepVol() {
   DEBUG_PRINTLN(F("decreaseBeepVoly()"), 0);
-  if (beepVol == 0) {
-    beepVol = 10;
+  if (g_beep_vol == 0) {
+    g_beep_vol = 10;
   }
   else {
-    beepVol--;
+    g_beep_vol--;
   }
   lcd.setCursor(0, 1);
-  lcdPrint(&lcd, beepVol, 2);
+  lcdPrint(&lcd, g_beep_vol, 2);
   lcd.print(F("                "));
 }
 
@@ -718,11 +718,11 @@ void on_menuSensitivity_selected(MenuItem* p_menu_item) {
     lcd.setCursor(0, 0);
     lcd.print(F("Sensitivity"));
     lcd.setCursor(0, 1);
-    lcdPrint(&lcd, sensitivity, 2);
+    lcdPrint(&lcd, g_sensitivity, 2);
   }
   else {
     DEBUG_PRINTLN(F("Save Sensitivity and Return to Menu"), 0);
-    g_sens_setting_e = sensitivity;
+    g_sens_setting_e = g_sensitivity;
     g_current_state = MENU;
     renderMenu();
   }
@@ -734,15 +734,15 @@ void on_menuSensitivity_selected(MenuItem* p_menu_item) {
 
 void increaseSensitivity() {
   DEBUG_PRINTLN(F("increaseSensitivity()"), 0);
-  if (sensitivity == 20) {
-    sensitivity = 0;
+  if (g_sensitivity == 20) {
+    g_sensitivity = 0;
   }
   else {
-    sensitivity++;
+    g_sensitivity++;
   }
   sensToThreshold();
   lcd.setCursor(0, 1);
-  lcdPrint(&lcd, sensitivity, 2);
+  lcdPrint(&lcd, g_sensitivity, 2);
   lcd.print(F("                "));
 }
 
@@ -752,15 +752,15 @@ void increaseSensitivity() {
 
 void decreaseSensitivity() {
   DEBUG_PRINTLN(F("decreaseSensitivity()"), 0);
-  if (sensitivity == 0) {
-    sensitivity = 20;
+  if (g_sensitivity == 0) {
+    g_sensitivity = 20;
   }
   else {
-    sensitivity--;
+    g_sensitivity--;
   }
   sensToThreshold();
   lcd.setCursor(0, 1);
-  lcdPrint(&lcd, sensitivity, 2);
+  lcdPrint(&lcd, g_sensitivity, 2);
   lcd.print(F("                "));
 }
 
@@ -776,12 +776,12 @@ void on_menuEcho_selected(MenuItem* p_menu_item) {
     lcd.setCursor(0, 0);
     lcd.print(F("Echo Protect"));
     lcd.setCursor(0, 1);
-    lcd.print(sampleWindow);
+    lcd.print(g_sample_window);
     lcd.print(F("ms"));
   }
   else {
     DEBUG_PRINTLN(F("Save Echo and Return to Menu"), 0);
-    g_sample_setting_e = sampleWindow;
+    g_sample_setting_e = g_sample_window;
     g_current_state = MENU;
     renderMenu();
   }
@@ -793,14 +793,14 @@ void on_menuEcho_selected(MenuItem* p_menu_item) {
 
 void increaseEchoProtect() {
   DEBUG_PRINTLN(F("increaseEchoProtect()"), 0);
-  if (sampleWindow == 100) {
-    sampleWindow = 10;
+  if (g_sample_window == 100) {
+    g_sample_window = 10;
   }
   else {
-    sampleWindow += 10;
+    g_sample_window += 10;
   }
   lcd.setCursor(0, 1);
-  lcd.print(sampleWindow);
+  lcd.print(g_sample_window);
   lcd.print(F("ms              ")); //CLEARLINE
 }
 
@@ -810,23 +810,23 @@ void increaseEchoProtect() {
 
 void decreaseEchoProtect() {
   DEBUG_PRINTLN(F("decreaseEchoProtect()"), 0);
-  if (sampleWindow == 10) {
-    sampleWindow = 100;
+  if (g_sample_window == 10) {
+    g_sample_window = 100;
   }
   else {
-    sampleWindow -= 10;
+    g_sample_window -= 10;
   }
   lcd.setCursor(0, 1);
-  lcd.print(sampleWindow);
+  lcd.print(g_sample_window);
   lcd.print(F("ms              "));//CLEARLINE
 }
 
 /////////////////////////////////////////////////////////////
-// convert sensitivity to threshold
+// convert g_sensitivity to g_threshold
 /////////////////////////////////////////////////////////////
 
 void sensToThreshold() {
-  threshold = 650 - (25 * sensitivity);
+  g_threshold = 650 - (25 * g_sensitivity);
 }
 
 /////////////////////////////////////////////////////////////
@@ -893,15 +893,15 @@ void on_menuParTimes_selected(MenuItem* p_menu_item) {
     lcd.setCursor(5, 0);
     lcd.print(F("Par"));
     lcd.setCursor(9, 0);
-    lcdPrint(&lcd, (currentPar + 1), 2);
+    lcdPrint(&lcd, (g_current_par + 1), 2);
     lcd.setCursor(4, 1);
-    if (currentPar > 0) {
+    if (g_current_par > 0) {
       lcd.print(F("+"));
     }
     else {
       lcd.print(F(" "));
     }
-    lcdPrintTime(&lcd, parTimes[currentPar], 9);
+    lcdPrintTime(&lcd, g_par_times[g_current_par], 9);
     DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
   }
   else {
@@ -917,22 +917,22 @@ void on_menuParTimes_selected(MenuItem* p_menu_item) {
 
 void parUp() {
   DEBUG_PRINTLN(F("parUp()"), 0);
-  if (currentPar == 0) {
-    currentPar = kParLimit - 1;
+  if (g_current_par == 0) {
+    g_current_par = kParLimit - 1;
   }
   else {
-    currentPar--;
+    g_current_par--;
   }
   lcd.setCursor(9, 0);
-  lcdPrint(&lcd, (currentPar + 1), 2);
+  lcdPrint(&lcd, (g_current_par + 1), 2);
   lcd.setCursor(4, 1);
-  if (currentPar > 0) {
+  if (g_current_par > 0) {
     lcd.print(F("+"));
   }
   else {
     lcd.print(F(" "));
   }
-  lcdPrintTime(&lcd, parTimes[currentPar], 9);
+  lcdPrintTime(&lcd, g_par_times[g_current_par], 9);
   DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
 }
 
@@ -943,22 +943,22 @@ void parUp() {
 void parDown() {
   DEBUG_PRINTLN(F("parDown()"), 1);
   DEBUG_PRINTLN(kParLimit,0);
-  if (currentPar == kParLimit - 1) {
-    currentPar = 0;
+  if (g_current_par == kParLimit - 1) {
+    g_current_par = 0;
   }
   else {
-    currentPar++;
+    g_current_par++;
   }
   lcd.setCursor(9, 0);
-  lcdPrint(&lcd, (currentPar + 1), 2);
+  lcdPrint(&lcd, (g_current_par + 1), 2);
   lcd.setCursor(4, 1);
-  if (currentPar > 0) {
+  if (g_current_par > 0) {
     lcd.print(F("+"));
   }
   else {
     lcd.print(F(" "));
   }
-  lcdPrintTime(&lcd, parTimes[currentPar], 9);
+  lcdPrintTime(&lcd, g_par_times[g_current_par], 9);
   DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
 }
 
@@ -975,16 +975,16 @@ void editPar() {
     lcd.print(F("Edit        "));
     lcd.setCursor(0, 1);
     lcd.print(F("P"));
-    lcdPrint(&lcd, currentPar + 1, 2);
-    if (currentPar > 0) {
+    lcdPrint(&lcd, g_current_par + 1, 2);
+    if (g_current_par > 0) {
       lcd.print(F(" +"));
     }
     else {
       lcd.print(F("  "));
     }
     lcd.setCursor(5, 1);
-    lcdPrintTime(&lcd, parTimes[currentPar], 9);
-    parCursor = 4; //reset cursor to the seconds position
+    lcdPrintTime(&lcd, g_par_times[g_current_par], 9);
+    g_par_cursor = 4; //reset cursor to the seconds position
     lcdCursor();
   }
   else {
@@ -1002,11 +1002,11 @@ void editPar() {
 
 void leftCursor() {
   DEBUG_PRINTLN(F("leftCursor()"), 0);
-  if (parCursor == 7) {
-    parCursor = 1;
+  if (g_par_cursor == 7) {
+    g_par_cursor = 1;
   }
   else {
-    parCursor++;
+    g_par_cursor++;
   }
   lcdCursor();
 }
@@ -1017,11 +1017,11 @@ void leftCursor() {
 
 void rightCursor() {
   DEBUG_PRINTLN(F("leftCursor()"), 0);
-  if (parCursor == 1) {
-    parCursor = 7;
+  if (g_par_cursor == 1) {
+    g_par_cursor = 7;
   }
   else {
-    parCursor--;
+    g_par_cursor--;
   }
   lcdCursor();
 }
@@ -1031,8 +1031,8 @@ void rightCursor() {
 /////////////////////////////////////////////////////////////
 //switch case for cursor position displayed on screen
 void lcdCursor() {
-  DEBUG_PRINT(F("Displaying Cursor at: "));DEBUG_PRINTLN(parCursor, 0);
-  switch (parCursor) {
+  DEBUG_PRINT(F("Displaying Cursor at: "));DEBUG_PRINTLN(g_par_cursor, 0);
+  switch (g_par_cursor) {
     case 1: //milliseconds
       lcd.setCursor(11, 0); //icon at 13
       lcd.print(F("  _"));
@@ -1073,67 +1073,67 @@ void lcdCursor() {
 /////////////////////////////////////////////////////////////
 
 void increaseTime() {
-  DEBUG_PRINT(F("Increase time at: "));DEBUG_PRINTLN(parCursor, 0);
-  switch (parCursor) {
+  DEBUG_PRINT(F("Increase time at: "));DEBUG_PRINTLN(g_par_cursor, 0);
+  switch (g_par_cursor) {
     case 1: // milliseconds
-      if (parTimes[currentPar] == 5999999) {
+      if (g_par_times[g_current_par] == 5999999) {
         break;
       }
       else {
-        parTimes[currentPar]++;
+        g_par_times[g_current_par]++;
       }
       break;
     case 2: // hundreds milliseconds
-      if (parTimes[currentPar] >= 5999990) {
+      if (g_par_times[g_current_par] >= 5999990) {
         break;
       }
       else {
-        parTimes[currentPar] += 10;
+        g_par_times[g_current_par] += 10;
       }
       break;
     case 3: // tens milliseconds
-      if (parTimes[currentPar] >= 5999900) {
+      if (g_par_times[g_current_par] >= 5999900) {
         break;
       }
       else {
-        parTimes[currentPar] += 100;
+        g_par_times[g_current_par] += 100;
       }
       break;
     case 4: // seconds
-      if (parTimes[currentPar] >= 5999000) {
+      if (g_par_times[g_current_par] >= 5999000) {
         break;
       }
       else {
-        parTimes[currentPar] += 1000;
+        g_par_times[g_current_par] += 1000;
       }
       break;
     case 5: // ten seconds
-      if (parTimes[currentPar] >= 5990000) {
+      if (g_par_times[g_current_par] >= 5990000) {
         break;
       }
       else {
-        parTimes[currentPar] += 10000;
+        g_par_times[g_current_par] += 10000;
       }
       break;
     case 6: // minutes
-      if (parTimes[currentPar] >= 5940000) {
+      if (g_par_times[g_current_par] >= 5940000) {
         break;
       }
       else {
-        parTimes[currentPar] += 60000;
+        g_par_times[g_current_par] += 60000;
       }
       break;
     case 7: // 10 minutes
-      if (parTimes[currentPar] >= 5400000) {
+      if (g_par_times[g_current_par] >= 5400000) {
         break;
       }
       else {
-        parTimes[currentPar] += 600000;
+        g_par_times[g_current_par] += 600000;
       }
       break;
   }
   lcd.setCursor(5, 1);
-  lcdPrintTime(&lcd, parTimes[currentPar], 9);
+  lcdPrintTime(&lcd, g_par_times[g_current_par], 9);
 }
 
 /////////////////////////////////////////////////////////////
@@ -1141,67 +1141,67 @@ void increaseTime() {
 /////////////////////////////////////////////////////////////
 
 void decreaseTime() {
-  DEBUG_PRINT(F("Decrease time at: "));DEBUG_PRINTLN(parCursor, 0);
-  switch (parCursor) {
+  DEBUG_PRINT(F("Decrease time at: "));DEBUG_PRINTLN(g_par_cursor, 0);
+  switch (g_par_cursor) {
     case 1:
-      if (parTimes[currentPar] < 1) {
+      if (g_par_times[g_current_par] < 1) {
         break;
       }
       else {
-        parTimes[currentPar]--;
+        g_par_times[g_current_par]--;
       }
       break;
     case 2:
-      if (parTimes[currentPar] < 10) {
+      if (g_par_times[g_current_par] < 10) {
         break;
       }
       else {
-        parTimes[currentPar] -= 10;
+        g_par_times[g_current_par] -= 10;
       }
       break;
     case 3:
-      if (parTimes[currentPar] < 100) {
+      if (g_par_times[g_current_par] < 100) {
         break;
       }
       else {
-        parTimes[currentPar] -= 100;
+        g_par_times[g_current_par] -= 100;
       }
       break;
     case 4:
-      if (parTimes[currentPar] < 1000) {
+      if (g_par_times[g_current_par] < 1000) {
         break;
       }
       else {
-        parTimes[currentPar] -= 1000;
+        g_par_times[g_current_par] -= 1000;
       }
       break;
     case 5:
-      if (parTimes[currentPar] < 10000) {
+      if (g_par_times[g_current_par] < 10000) {
         break;
       }
       else {
-        parTimes[currentPar] -= 10000;
+        g_par_times[g_current_par] -= 10000;
       }
       break;
     case 6:
-      if (parTimes[currentPar] < 60000) {
+      if (g_par_times[g_current_par] < 60000) {
         break;
       }
       else {
-        parTimes[currentPar] -= 60000;
+        g_par_times[g_current_par] -= 60000;
       }
       break;
     case 7:
-      if (parTimes[currentPar] < 600000) {
+      if (g_par_times[g_current_par] < 600000) {
         break;
       }
       else {
-        parTimes[currentPar] -= 600000;
+        g_par_times[g_current_par] -= 600000;
       }
       break;
   }
   lcd.setCursor(5, 1);
-  lcdPrintTime(&lcd, parTimes[currentPar], 9);
+  lcdPrintTime(&lcd, g_par_times[g_current_par], 9);
 }
 
 /////////////////////////////////////////////////////////////
@@ -1209,7 +1209,7 @@ void decreaseTime() {
 /////////////////////////////////////////////////////////////
 
 void BEEP() {
-  toneAC(kBeepNote, beepVol, kBeepDur, true);
+  toneAC(kBeepNote, g_beep_vol, kBeepDur, true);
 }
 
 /////////////////////////////////////////////////////////////
@@ -1217,7 +1217,7 @@ void BEEP() {
 /////////////////////////////////////////////////////////////
 
 void buttonTone() {
-  toneAC(kBeepNote, beepVol, kButtonDur, true);
+  toneAC(kBeepNote, g_beep_vol, kButtonDur, true);
 }
 
 /////////////////////////////////////////////////////////////
@@ -1243,33 +1243,33 @@ void eepromSetup() {
   if (g_sample_setting_e == unSet || g_sens_setting_e == unSet 
     || g_beep_setting_e == unSet || g_delay_setting_e == unSet) {
     DEBUG_PRINTLN(F("Setting EEPROM"), 0);
-    g_delay_setting_e = delayTime;
+    g_delay_setting_e = g_delay_time;
       DEBUG_PRINTLN(F("Set g_delay_setting_e to "), 0);
-      DEBUG_PRINTLN(delayTime, 0);
-    g_beep_setting_e = beepVol;
+      DEBUG_PRINTLN(g_delay_time, 0);
+    g_beep_setting_e = g_beep_vol;
       DEBUG_PRINTLN(F("Set g_beep_setting_e to "), 0);
-      DEBUG_PRINTLN(beepVol, 0);
-    g_sens_setting_e = sensitivity;
+      DEBUG_PRINTLN(g_beep_vol, 0);
+    g_sens_setting_e = g_sensitivity;
       DEBUG_PRINTLN(F("Set g_sens_setting_e to "), 0);
-      DEBUG_PRINTLN(sensitivity, 0);
-    g_sample_setting_e = sampleWindow;
+      DEBUG_PRINTLN(g_sensitivity, 0);
+    g_sample_setting_e = g_sample_window;
       DEBUG_PRINTLN(F("Set g_sample_setting_e to "), 0);
-      DEBUG_PRINTLN(sampleWindow, 0);
+      DEBUG_PRINTLN(g_sample_window, 0);
   }
   else {
     DEBUG_PRINTLN(F("Reading settings from EEPROM"), 0);
-    delayTime = g_delay_setting_e;
-      DEBUG_PRINTLN(F("Set delayTime to "), 0);
-      DEBUG_PRINTLN(delayTime, 0);
-    beepVol = g_beep_setting_e;
-      DEBUG_PRINTLN(F("Set beepVol to "), 0);
-      DEBUG_PRINTLN(beepVol, 0);
-    sensitivity = g_sens_setting_e;
-      DEBUG_PRINTLN(F("Set sensitivity to "), 0);
-      DEBUG_PRINTLN(sensitivity, 0);
-    sampleWindow = g_sample_setting_e;
-      DEBUG_PRINTLN(F("Set sampleWindow to "), 0);
-      DEBUG_PRINTLN(sampleWindow, 0);
+    g_delay_time = g_delay_setting_e;
+      DEBUG_PRINTLN(F("Set g_delay_time to "), 0);
+      DEBUG_PRINTLN(g_delay_time, 0);
+    g_beep_vol = g_beep_setting_e;
+      DEBUG_PRINTLN(F("Set g_beep_vol to "), 0);
+      DEBUG_PRINTLN(g_beep_vol, 0);
+    g_sensitivity = g_sens_setting_e;
+      DEBUG_PRINTLN(F("Set g_sensitivity to "), 0);
+      DEBUG_PRINTLN(g_sensitivity, 0);
+    g_sample_window = g_sample_setting_e;
+      DEBUG_PRINTLN(F("Set g_sample_window to "), 0);
+      DEBUG_PRINTLN(g_sample_window, 0);
   }
   sensToThreshold(); 
 }
@@ -1393,8 +1393,8 @@ void buttonListener(Adafruit_RGBLCDShield* lcd,
           rateOfFire();
           break;
         case BUTTON_LEFT:
-          DEBUG_PRINTLN(F("LEFT/reviewShot--;nextShot()"), 0);
-          reviewShot--;
+          DEBUG_PRINTLN(F("LEFT/g_review_shot--;nextShot()"), 0);
+          g_review_shot--;
           nextShot();
           break;
         case BUTTON_DOWN:
@@ -1572,7 +1572,7 @@ void buttonListener(Adafruit_RGBLCDShield* lcd,
 
 void shotListener() {
   //DEBUG_PRINTLN(F("Listen-start:"),0);
-  if (sampleSound() >= threshold) {
+  if (sampleSound() >= g_threshold) {
     recordShot();
   }
   //DEBUG_PRINTLN(F("Listen-end:"),0);
