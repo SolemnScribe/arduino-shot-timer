@@ -57,7 +57,7 @@
 // Comment this out to disable debug information and remove all
 // DEBUG messages at compile time
 // To preserve SRAM while debugging, set shotLimit to 50 or less
-#define DEBUG
+// #define DEBUG
 #include "DebugMacros.h"
 
 //////////////////////////////
@@ -149,7 +149,8 @@ const char PROGMEM kParName[] = "Set Par >>";
 const char PROGMEM kParSetName[] = "<< [Toggle Par]";
 const char PROGMEM kParTimesName[] = "<< [Par Times]";
 const char PROGMEM kSettingsName[] = "Settings >>";
-const char PROGMEM kSetDelayName[] = "<< [Set Delay] ";
+const char PROGMEM kSetDelayName[] = "<< [Set Delay]";
+const char PROGMEM kROFName[] = "<<[Rate of Fire]";
 const char PROGMEM kBuzzerName[] = "<< [Buzzer Vol]";
 const char PROGMEM kSensitivityName[] = "<< [Sensitivity]";
 const char PROGMEM kEchoName[] = "<< [Echo Reject]";
@@ -168,7 +169,7 @@ const char PROGMEM kPlus[] = "+";
 const char PROGMEM kCursor[] = "  _  ";
 
 const int PROGMEM kParLimit = 10;
-const int PROGMEM kShotLimit = 50;
+const int PROGMEM kShotLimit = 200;
 
 
 ////////////////////////////////////////////////////////////
@@ -208,14 +209,16 @@ uint8_e g_sample_setting_e; //Cannot be 0
 // http://stackoverflow.com/questions/18903528/permanently-changing-value-of-parameter
 uint8_t g_buttons_state;
 boolean g_par_enabled;
+boolean g_include_draw; 
 enum ProgramState {
-  MENU,         // Navigating menus
-  TIMER,       // Timer is running // && g_par_enabled
-  REVIEW,       // 2 - Reviewing shots 
-  SETPARSTATE,  // 3 - Setting Par State // && g_par_enabled
+  MENU,         // 0 - Navigating menus
+  TIMER,        // 1 - Timer is running   // && g_par_enabled
+  REVIEW,       // 2 - Reviewing shots    // && g_include_draw
+  SETPARSTATE,  // 3 - Setting Par State  // && g_par_enabled
   SETPARTIMES,  // 4 - Setting Par Times
-  SETINDPAR,    // 5 - ?? Editing Par // Setting Single Par
+  SETINDPAR,    // 5 - Setting Single Par
   SETDELAY,     // 6 - Setting Delay
+  SETROFDRAW,   // 7 - Setting Incl Draw  // && g_include_draw
   SETBEEP,      // 7 - Setting Beep
   SETSENS,      // 8 - Setting Sensitivity 
   SETECHO       // 9 - Setting Echo
@@ -245,6 +248,7 @@ Menu main_menu(kMainName);
     MenuItem menu_par_times(kParTimesName);
   Menu settings_menu(kSettingsName);
     MenuItem menu_start_delay(kSetDelayName);
+    MenuItem menu_rof(kROFName);
     MenuItem menu_buzzer(kBuzzerName);
     MenuItem menu_sensitivity(kSensitivityName);
     MenuItem menu_echo(kEchoName);
@@ -405,6 +409,11 @@ void StopTimer(boolean out = 0) {
   if (out == 1) {
     g_lcd.setBacklight(WHITE);
   }
+  // Since the timer is stopped move back to last recorded shot.
+  // Unless there were only one or no shots. 
+  if (g_current_shot > 0) {
+    g_current_shot--;
+  }
   // Also - transition menus and re-render menu screens in the stop condition. 
   tm.next(); // move the menu down to review mode
   tm.select(); // move into shot review mode immediately
@@ -419,13 +428,11 @@ void RecordShot() {
   DEBUG_PRINT_P(kShotNum); DEBUG_PRINT(g_current_shot + 1); 
   DEBUG_PRINT(F(" - "));
   DEBUG_PRINT(F("\n"));
-  //serialPrintln(shotTimer.elapsed());
-  //serialPrintln(g_shot_chrono.elapsed(), 9);
   g_lcd.setCursor(13, 0);
   lcd_print(&g_lcd, g_current_shot + 1, 3);
   g_lcd.setCursor(7, 1);
   lcd_print_time(&g_lcd, g_shot_times[g_current_shot], 9); 
-  g_current_shot += 1;
+  g_current_shot++;
   if (g_current_shot == kShotLimit) { 
     DEBUG_PRINTLN(F("Out of room for shots"),0);
     StopTimer(1);
@@ -436,16 +443,16 @@ void RecordShot() {
 // review shots - initialize the shot review screen
 //////////////////////////////
 
+// g_current_shot is the actual most recent shot from the timer
+// g_current_shot + 1 is the total number of shots 
+// g_review_shot is the shot being reviewed
+
 void on_menu_review_selected(MenuItem* p_menu_item) {
   if(g_current_state != REVIEW){
     DEBUG_PRINTLN(F("Enter REVIEW Mode"), 0);
     DEBUG_PRINTLN(g_current_state, 0);
     g_current_state = REVIEW;
     DEBUG_PRINTLN(g_current_state, 0);
-    // If there is more than one shot, start at the last shot in the string
-    if (g_current_shot > 0) {
-      g_review_shot = g_current_shot - 1;
-    }
     //DEBUG FOR LOOP - PRINT ALL SHOT TIMES IN THE STRING TO SERIAL 
     // for (int t = 0; t < g_current_shot; t++) {
     //   DEBUG_PRINT_P(kShotNum);
@@ -456,9 +463,10 @@ void on_menu_review_selected(MenuItem* p_menu_item) {
     //END DEBUG 
     g_lcd.setBacklight(VIOLET);
     g_lcd.setCursor(0, 0);
-    DEBUG_PRINT(F("Reviewing Shot: ")); DEBUG_PRINTLN(g_review_shot,0);
+    g_review_shot = g_current_shot; 
+    DEBUG_PRINT(F("Reviewing Shot: ")); DEBUG_PRINTLN(g_review_shot + 1,0);
     lcd_print_p(&g_lcd, kShotNum);
-    g_lcd.print(g_current_shot);
+    g_lcd.print(g_review_shot + 1);
     lcd_print_p(&g_lcd, kClearLine);
     g_lcd.setCursor(11, 0);
     lcd_print_p(&g_lcd, kSplit);
@@ -467,8 +475,7 @@ void on_menu_review_selected(MenuItem* p_menu_item) {
     lcd_print_p(&g_lcd, kSpace);
     if (g_review_shot == 0) {
       lcd_print_p(&g_lcd, kFirst);
-    }
-    if (g_review_shot > 1) {
+    } else {
       lcd_print_time(&g_lcd, g_shot_times[g_review_shot] - 
                       g_shot_times[g_review_shot - 1], 6);
     }
@@ -485,23 +492,19 @@ void on_menu_review_selected(MenuItem* p_menu_item) {
 // review shots - move to the next shot in the string
 //////////////////////////////
 
+// if g_review shot == g_current_shot set g_review_shot = 0 
+// else increment g_review_shot
+// print according to same rules as initial menu
+
 void NextShot() {
   DEBUG_PRINTLN(F("NextShot()"), 0);
   DEBUG_PRINTLN(g_current_state, 0);
   g_lcd.setCursor(0, 0);
   lcd_print_p(&g_lcd, kShotNum);
-  if (g_current_shot == 0 || g_review_shot == g_current_shot - 1) {
+  if (g_review_shot == g_current_shot) {
     g_review_shot = 0;
-    g_lcd.print(g_review_shot + 1);
-  }
-  // else if (g_review_shot == 0) {
-  //   g_review_shot = g_current_shot - 1;
-  //   g_lcd.print(g_review_shot + 1);
-  // }
-  else {
-    g_review_shot++;
-    g_lcd.print(g_review_shot + 1);
-  }
+  } else g_review_shot++;
+  g_lcd.print(g_review_shot + 1);
   lcd_print_p(&g_lcd, kClearLine);
   g_lcd.setCursor(11, 0);
   lcd_print_p(&g_lcd, kSplit);
@@ -521,23 +524,20 @@ void NextShot() {
 // review shots - move to the previous shot in the string
 //////////////////////////////
 
+// if g_review shot == 0 set g_review_shot = g_current_shot 
+// else decrement g_review_shot
+// print according to same rules as initial menu
+
 void PreviousShot() {
   DEBUG_PRINTLN(F("PreviousShot()"), 0);
   DEBUG_PRINTLN(g_current_state, 0);
+  DEBUG_PRINTLN(g_current_state, 0);
   g_lcd.setCursor(0, 0);
   lcd_print_p(&g_lcd, kShotNum);
-  if (g_current_shot == 0) {
-    g_review_shot = 0;
-    g_lcd.print(g_review_shot);
-  }
-  else if (g_review_shot == 0) {
-    g_review_shot = g_current_shot - 1;
-    g_lcd.print(g_review_shot + 1);
-  }
-  else {
-    g_review_shot--;
-    g_lcd.print(g_review_shot + 1);
-  }
+  if (g_review_shot == 0) {
+    g_review_shot = g_current_shot;
+  } else g_review_shot--;
+  g_lcd.print(g_review_shot + 1);
   lcd_print_p(&g_lcd, kClearLine);
   g_lcd.setCursor(11, 0);
   lcd_print_p(&g_lcd, kSplit);
@@ -557,30 +557,34 @@ void PreviousShot() {
 // Rate of Fire
 //////////////////////////////
 
-void RateOfFire(boolean includeDraw = true) {
+void RateOfFire(boolean* draw) {
   DEBUG_PRINTLN(g_current_state, 0);
   DEBUG_PRINTLN(F("rateofFire()"), 0);
-  unsigned int rof;
-  if (!includeDraw) {
-    rof = (g_shot_times[g_current_shot - 1] - 
-    g_shot_times[0]) / (g_current_shot - 1);
+  unsigned int avg_split = 0;
+  unsigned int rof = 0;
+  if (g_current_shot > 0){
+    if (*draw == false) {
+      avg_split = (g_shot_times[g_current_shot] - 
+                   g_shot_times[0]) / (g_current_shot);
+    }
+    else {
+      avg_split = g_shot_times[g_current_shot] / (g_current_shot);
+    }
+    rof = 60000 / avg_split;
   }
-  else rof = g_shot_times[g_current_shot - 1] / (g_current_shot - 1);
-
   g_lcd.setCursor(0, 0);
   lcd_print_p(&g_lcd, kClearLine);
   g_lcd.setCursor(0, 0);
-  g_lcd.print(F("Avg Split:"));
-  g_lcd.setCursor(11, 0);
-  lcd_print_time(&g_lcd, rof, 6);
+  g_lcd.print(F("Avg Splt:"));
+  g_lcd.setCursor(10, 0);
+  lcd_print_time(&g_lcd, avg_split, 6);
   g_lcd.setCursor(0, 1);
   lcd_print_p(&g_lcd, kClearLine);
   g_lcd.setCursor(0, 1);
-  g_lcd.print(F("Shots/min:"));
-  g_lcd.setCursor(11, 1);
-  g_lcd.print(60000 / rof); // will this produce a decimal? Or a truncated int?
+  g_lcd.print(F("Shots/mn:"));
+  g_lcd.setCursor(10, 1);
+  g_lcd.print(rof); 
 }
-
 
 //////////////////////////////
 // on_menu_start_delay_selected
@@ -676,6 +680,53 @@ void StartDelay() {
   }
   else {
     delay(g_delay_time * 1000); //fixed number of seconds
+  }
+}
+
+//////////////////////////////
+// on_menu_rof_selected
+//////////////////////////////
+
+void on_menu_rof_selected(MenuItem* p_menu_item) {
+  DEBUG_PRINT(F("State before select: ")); DEBUG_PRINTLN(g_current_state,0);
+  DEBUG_PRINTLN(tm.get_current_menu()->get_name(),0);
+  if(g_current_state != SETROFDRAW){
+    DEBUG_PRINTLN(F("Enter SETROFDRAW Mode"),0);
+    g_current_state = SETROFDRAW;
+    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(g_current_state,0);
+    g_lcd.clear();
+    g_lcd.setCursor(0, 0);
+    g_lcd.print(F("Include Draw"));
+    g_lcd.setCursor(0, 1);
+    if (g_include_draw == false) {
+      lcd_print_p(&g_lcd, kDisabled);
+    }
+    else {
+      lcd_print_p(&g_lcd, kEnabled);
+    }
+  }
+  else {
+    DEBUG_PRINTLN(F("Return to Menu"), 0);
+    g_current_state = MENU;
+    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(g_current_state,0);
+    RenderMenu();
+  }
+}
+
+//////////////////////////////
+// ToggleIncludeDraw
+//////////////////////////////
+
+void ToggleIncludeDraw() {
+  g_include_draw = !g_include_draw;
+  DEBUG_PRINT(F("g_current_state: ")); DEBUG_PRINTLN(g_current_state,0);
+  DEBUG_PRINT(F("Toggled Include Draw: "));DEBUG_PRINTLN(g_par_enabled, 0);
+  g_lcd.setCursor(0, 1);
+  if (g_include_draw == false) {
+    lcd_print_p(&g_lcd, kDisabled); //10 characters
+  }
+  else {
+    lcd_print_p(&g_lcd, kEnabled); //10 characters
   }
 }
 
@@ -1330,6 +1381,8 @@ void MenuSetup()
     DEBUG_PRINTLN_P(kSettingsName,0);
     settings_menu.add_item(&menu_start_delay, &on_menu_start_delay_selected);
       DEBUG_PRINTLN_P(kSetDelayName,0);
+    settings_menu.add_item(&menu_rof, &on_menu_rof_selected);
+      DEBUG_PRINTLN_P(kROFName,0);
     settings_menu.add_item(&menu_buzzer, &on_menu_buzzer_selected);
       DEBUG_PRINTLN_P(kBuzzerName,0);
     settings_menu.add_item(&menu_sensitivity, &on_menu_sensitivity_selected);
@@ -1423,7 +1476,7 @@ void ButtonListener(Adafruit_RGBLCDShield* g_lcd,
           break;
         case BUTTON_RIGHT:
           DEBUG_PRINTLN(F("RIGHT/RateOfFire()"), 0);
-          RateOfFire();
+          RateOfFire(&g_include_draw);
           break;
         case BUTTON_LEFT:
           DEBUG_PRINTLN(F("LEFT/g_review_shot--;NextShot()"), 0);
@@ -1533,6 +1586,28 @@ void ButtonListener(Adafruit_RGBLCDShield* g_lcd,
         case BUTTON_UP:
           DEBUG_PRINTLN(F("UP/IncreaseDelay()"), 0);
           IncreaseDelay();
+          break;
+        }
+      break;
+    case SETROFDRAW:
+      switch (new_button) {
+        case BUTTON_SELECT:
+          DEBUG_PRINTLN(F("SELECT/(BACK)SELECT"), 0);
+          DEBUG_PRINTLN_P(tm.get_current_menu()->get_name(),0);
+          tm.select();
+          DEBUG_PRINTLN_P(tm.get_current_menu()->get_name(),0);
+          break;
+        case BUTTON_LEFT:
+          DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
+          tm.select();
+          break;
+        case BUTTON_DOWN:
+          DEBUG_PRINTLN(F("DOWN/ToggleParState()"), 0);
+          ToggleIncludeDraw();
+          break;
+        case BUTTON_UP:
+          DEBUG_PRINTLN(F("UP/ToggleParState()"), 0);
+          ToggleIncludeDraw();
           break;
         }
       break;
