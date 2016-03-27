@@ -41,11 +41,11 @@
     //////////////////////
     
     ///////////
-    // FREE_RAM - Check available dynamic memory - 
+    // freeRam() - Check available dynamic memory - 
     // http://playground.arduino.cc/Code/AvailableMemory
     ///////////
 
-    int FREE_RAM()
+    int freeRam()
     {
       extern int __heap_start, *__brkval; 
       int v; 
@@ -100,7 +100,7 @@
       serialPrint_p(kMillisStr);                        \
       Serial.print(millis());                           \
       serialPrint_p(kBytesStr);                         \
-      Serial.print(FREE_RAM());                         \
+      Serial.print(freeRam());                         \
       serialPrint_p(kColStr);                           \
       Serial.print(__PRETTY_FUNCTION__);                \
       serialPrint_p(kSpaceStr);                         \
@@ -118,7 +118,7 @@
       serialPrint_p(kMillisStr);                        \
       Serial.print(millis());                           \
       serialPrint_p(kBytesStr);                         \
-      Serial.print(FREE_RAM());                         \
+      Serial.print(freeRam());                         \
       serialPrint_p(kColStr);                           \
       Serial.print(__PRETTY_FUNCTION__);                \
       serialPrint_p(kSpaceStr);                         \
