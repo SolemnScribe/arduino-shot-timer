@@ -1,8 +1,8 @@
-/////////////////////////////////
+////////////////////////////////////////////////////////////
 // Making Time Legible
 // Author: hestenet
 // Canonical Repository: https://github.com/hestenet/arduino-shot-timer
-/////////////////////////////////
+////////////////////////////////////////////////////////////
 //  This file is part of ShotTimer. 
 //
 //  This program is free software: you can redistribute it and/or modify
@@ -19,14 +19,14 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //  http://www.gnu.org/licenses/lgpl.txt
 //
-/////////////////////////////////
+////////////////////////////////////////////////////////////
 
 #ifndef LEGIBLETIME_H_
 #define LEGIBLETIME_H_
 
-  /////////////////////////////////////////////////////////////
+  //////////////////////////////
   // Fit Digits - trim an array to the specified number of digits
-  /////////////////////////////////////////////////////////////
+  //////////////////////////////
   // Function to trim the array to the number of digits specified
   //http://stackoverflow.com/questions/12337836/shifting-elements-in-an-array-in-c-pointer-based
   // Alternate method to count digits: http://stackoverflow.com/questions/1489830/efficient-way-to-determine-number-of-digits-in-an-integer <-- COME BACK TO THIS ONE!
@@ -34,9 +34,8 @@
   // http://forum.arduino.cc/index.php?topic=87303.0
   // http://forum.arduino.cc/index.php?topic=207965.0
   // http://stackoverflow.com/questions/1726298/strip-first-and-last-character-from-c-string
-  /////////////////////////////////////////////////////////////
+  //////////////////////////////
 
-  // @TODO: fit_digits() 
   // num of digits must include punctuation - format "00:00:00.000"
   void fit_digits(char *str, int digits) 
   {
@@ -50,6 +49,10 @@
     //  *(str+i) = *(str+i+2);
     //}
   }
+  
+  //////////////////////////////
+  // Convert Num - to specific digits
+  //////////////////////////////
   // formerly called print2digits: 
   // http://arduino.cc/forum/index.php?topic=64024.30
   void convert_num(uint32_t num, byte digits, char* str) 
@@ -76,17 +79,15 @@
     DEBUG_PRINTLN(F("Done Converting Num"), 0);
   }
   
-  /////////////////////////////////////////////////////////////
+  //////////////////////////////
   // Convert Time - to a legible format
-  /////////////////////////////////////////////////////////////
+  //////////////////////////////
   // Consider making digits into an enum
   // Possibly add another function or another parameter to return strings of a 
   // certain length
   // String management reference:https://hackingmajenkoblog.wordpress.com/2016/02/04/the-evils-of-arduino-strings/
-  /////////////////////////////////////////////////////////////
+  //////////////////////////////
   
-  // formerly called print2digits: 
-  // http://arduino.cc/forum/index.php?topic=64024.30
   void convert_time(uint32_t te, byte digits, char* str) 
   {
     // byte h, m, s // Can we store these and do UL math on them?
