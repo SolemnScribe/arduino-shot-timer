@@ -42,11 +42,11 @@
     ////////////////////////////////////////////////////////////
     
     //////////////////////////////
-    // freeRam() - Check available dynamic memory - 
+    // FreeRam() - Check available dynamic memory - 
     // http://playground.arduino.cc/Code/AvailableMemory
     //////////////////////////////
 
-    int freeRam() {
+    int free_ram() {
       extern int __heap_start, *__brkval; 
       int v; 
       return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
@@ -56,7 +56,7 @@
     // Serial PROGMEM Helpers - Print a string from PROGMEM to Serial output
     //////////////////////////////
 
-    void serialPrint_p(const char* kStr) {
+    void serial_print_p(const char* kStr) {
       char c;
       if (!kStr)
       {
@@ -68,7 +68,7 @@
       }
     }
     //println
-    void serialPrintln_p(const char* kStr) {
+    void serial_println_p(const char* kStr) {
       char c;
       if (!kStr)
       {
@@ -78,7 +78,7 @@
       {
         Serial.print(c);
       }
-      serialPrint_p(kNewlineStr); //Serial.print("\n");
+      serial_print_p(kNewlineStr); //Serial.print("\n");
     }
 
     ////////////////////////////////////////////////////////////
@@ -94,36 +94,36 @@
       Serial.print(str);
     #define DEBUG_PRINTLN(str, bl)                      \
       if (bl > 0) {                                     \
-      serialPrint_p(kMillisStr);                        \
+      serial_print_p(kMillisStr);                        \
       Serial.print(millis());                           \
-      serialPrint_p(kBytesStr);                         \
-      Serial.print(freeRam());                          \
-      serialPrint_p(kColStr);                           \
+      serial_print_p(kBytesStr);                         \
+      Serial.print(FreeRam());                          \
+      serial_print_p(kColStr);                           \
       Serial.print(__PRETTY_FUNCTION__);                \
-      serialPrint_p(kSpaceStr);                         \
+      serial_print_p(kSpaceStr);                         \
       Serial.print(__FILE__);                           \
-      serialPrint_p(kColStr);                           \
+      serial_print_p(kColStr);                           \
       Serial.print(__LINE__);                           \
-      serialPrint_p(kSpaceStr);                         \
+      serial_print_p(kSpaceStr);                         \
       }                                                 \
       Serial.println(str);
     #define DEBUG_PRINT_P(str)                          \
-      serialPrint_p(str);
+      serial_print_p(str);
     #define DEBUG_PRINTLN_P(str, bl)                    \
       if (bl > 0) {                                     \
-      serialPrint_p(kMillisStr);                        \
+      serial_print_p(kMillisStr);                        \
       Serial.print(millis());                           \
-      serialPrint_p(kBytesStr);                         \
-      Serial.print(freeRam());                          \
-      serialPrint_p(kColStr);                           \
+      serial_print_p(kBytesStr);                         \
+      Serial.print(FreeRam());                          \
+      serial_print_p(kColStr);                           \
       Serial.print(__PRETTY_FUNCTION__);                \
-      serialPrint_p(kSpaceStr);                         \
+      serial_print_p(kSpaceStr);                         \
       Serial.print(__FILE__);                           \
-      serialPrint_p(kColStr);                           \
+      serial_print_p(kColStr);                           \
       Serial.print(__LINE__);                           \
-      serialPrint_p(kSpaceStr);                         \
+      serial_print_p(kSpaceStr);                         \
       }                                                 \
-      serialPrintln_p(str);
+      serial_println_p(str);
     
   #else
     #define DEBUG_SETUP()
