@@ -32,9 +32,9 @@
 /////////////////////////////////////////
 // Current Flaws:
 // ShotListener(); probably could be redesigned to run on a timer interupt.
-// as a result, the g_par_times beep may come as early or late as half the sample 
-// window time. However, at most reasonable g_sample_windows this will likely be 
-// indistinguishable to the user
+// as a result, the g_par_times beep may come as early or late as half the 
+// sample window time. However, at most reasonable g_sample_windows this will 
+// likely be indistinguishable to the user
 //
 // ParTimes are not saved to EEPROM, as their frequent updating is more likely 
 // to burn out the chip.
@@ -147,7 +147,7 @@ const char PROGMEM kParSetName[] = "<< [Toggle Par]";
 const char PROGMEM kParTimesName[] = "<< [Par Times]";
 const char PROGMEM kSettingsName[] = "Settings >>";
 const char PROGMEM kSetDelayName[] = "<< [Set Delay] ";
-const char PROGMEM kBuzzerName[] = "<< [Buzzr Vol]";
+const char PROGMEM kBuzzerName[] = "<< [Buzzer Vol]";
 const char PROGMEM kSensitivityName[] = "<< [Sensitivity]";
 const char PROGMEM kEchoName[] = "<< [Echo Reject]";
 const int PROGMEM kParLimit = 10;
@@ -470,13 +470,17 @@ void NextShot() {
     g_review_shot = 0;
     g_lcd.print(g_review_shot + 1);
   }
+  else if (g_review_shot == 0) {
+    g_review_shot = g_current_shot - 1;
+    g_lcd.print(g_review_shot + 1);
+  }
   else {
     g_review_shot++;
     g_lcd.print(g_review_shot + 1);
   }
   g_lcd.print(F("                "));
-  g_lcd.setCursor(9, 0);
-  g_lcd.print(F(" Split "));
+  g_lcd.setCursor(11, 0);
+  g_lcd.print(F("Split"));
   g_lcd.setCursor(0, 1);
   lcd_print_time(&g_lcd, g_shot_times[g_review_shot], 9);
   g_lcd.print(F(" "));
@@ -484,7 +488,8 @@ void NextShot() {
     g_lcd.print(F("   1st"));
   }
   else {
-    lcd_print_time(&g_lcd, g_shot_times[g_review_shot] - g_shot_times[g_review_shot - 1], 6);
+    lcd_print_time(&g_lcd, g_shot_times[g_review_shot] - 
+                   g_shot_times[g_review_shot - 1], 6);
   }
 }
 
@@ -510,8 +515,8 @@ void PreviousShot() {
     g_lcd.print(g_review_shot + 1);
   }
   g_lcd.print(F("                "));
-  g_lcd.setCursor(9, 0);
-  g_lcd.print(F(" Split "));
+  g_lcd.setCursor(11, 0);
+  g_lcd.print(F("Split"));
   g_lcd.setCursor(0, 1);
   lcd_print_time(&g_lcd, g_shot_times[g_review_shot], 9);
   g_lcd.print(F(" "));
@@ -519,7 +524,8 @@ void PreviousShot() {
     g_lcd.print(F("   1st"));
   }
   else {
-    lcd_print_time(&g_lcd, g_shot_times[g_review_shot] - g_shot_times[g_review_shot - 1], 6);
+    lcd_print_time(&g_lcd, g_shot_times[g_review_shot] - 
+                   g_shot_times[g_review_shot - 1], 6);
   }
 }
 
@@ -532,7 +538,8 @@ void RateOfFire(boolean includeDraw = true) {
   DEBUG_PRINTLN(F("rateofFire()"), 0);
   unsigned int rof;
   if (!includeDraw) {
-    rof = (g_shot_times[g_current_shot - 1] - g_shot_times[0]) / (g_current_shot - 1);
+    rof = (g_shot_times[g_current_shot - 1] - 
+    g_shot_times[0]) / (g_current_shot - 1);
   }
   else rof = g_shot_times[g_current_shot - 1] / (g_current_shot - 1);
 

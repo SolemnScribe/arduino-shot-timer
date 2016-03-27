@@ -114,4 +114,4 @@
   #define NOTE_D8  4699
   #define NOTE_DS8 4978
 
-#endif //PITCHES_H_
+#endif // PITCHES_H_
