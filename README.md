@@ -31,7 +31,9 @@
 
 ## Release History 
 
-### [2.0.0] (https://github.com/hestenet/arduino-shot-timer/releases/tag/v.2.0.0) 
+### [2.0.0] (https://github.com/hestenet/arduino-shot-timer/releases/tag/v.2.0.0) - EEPROM
+The 2.x branch of Shot Timer stores its settings in EEPROM, and does not require an SD card interface for Arduino.
+
 This release represents a major refactor of the code, with a few goals:
 - Compatibility with Arduino v.1.6.8 
 - Replace libraries with ones easily available in the `Arduino->Sketch->Include Libraries` interface
