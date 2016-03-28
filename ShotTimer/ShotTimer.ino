@@ -28,6 +28,7 @@
 // Adafruit RGB LCD Shield - https://www.adafruit.com/products/714
 // Adafruit Electet Mic/Amp - https://www.adafruit.com/products/1063
 // Piezzo Buzzer
+// Adafruit MicroSD breakout w/ 4g micro sd card - http://www.adafruit.com/products/254
 ////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////
@@ -72,6 +73,9 @@
 
 // PGMWrap makes it easier to use PROGMEM - declare vars with _p e.g: char_p
 #include <PGMWrap.h>
+
+// SD Library - to read/write from an SD card
+#include <SD.h>
 
 // EEPROM additional non-volatile space 
 #include <EEPROM.h>
@@ -131,6 +135,7 @@
 ////////////////////////////////////////////////////////////
 const uint8_p PROGMEM kMicPin = A0; //set the input for the mic/amplifier 
                                     // the mic/amp is connected to analog pin 0
+const int kChipSelect = 8; // set the chipSelect pin for the SD Card
 const uint8_p PROGMEM kButtonDur = 80;
 const int16_p PROGMEM kBeepDur = 400;
 const int16_p PROGMEM kBeepNote = NOTE_C4;
@@ -169,7 +174,7 @@ const char PROGMEM kPlus[] = "+";
 const char PROGMEM kCursor[] = "  _  ";
 
 const int PROGMEM kParLimit = 10;
-const int PROGMEM kShotLimit = 200;
+const int PROGMEM kShotLimit = 20;
 
 
 ////////////////////////////////////////////////////////////
@@ -210,7 +215,8 @@ uint8_e g_sample_setting_e;  //Cannot be 0
 // http://stackoverflow.com/questions/18903528/permanently-changing-value-of-parameter
 uint8_t g_buttons_state;
 boolean g_par_enabled;
-boolean g_include_draw; 
+boolean g_include_draw;
+boolean g_sd_present = false;
 enum ProgramState {
   MENU,         // 0 - Navigating menus
   TIMER,        // 1 - Timer is running   // && g_par_enabled
@@ -228,8 +234,11 @@ enum ProgramState {
 //////////////////////////////
 // Instantiation //@TODO: should maybe have a settings object and timer object? 
 //////////////////////////////
-LightChrono g_shot_chrono;
 
+Sd2Card sd_card;
+SdVolume sd_volume;
+SdFile sd_root;
+LightChrono g_shot_chrono;
 // The shield uses the I2C SCL and SDA pins. On classic Arduinos
 // this is Analog 4 and 5 so you can't use those for analogRead() anymore
 // However, you can connect other I2C sensors to the I2C bus and share
@@ -1368,6 +1377,82 @@ void EEPROMSetup() {
 }
 
 //////////////////////////////
+// SD Setup
+//////////////////////////////
+
+void SetupSD() {
+  Serial.begin(9600);
+  Serial.print(F("Initializing SD card..."));
+  // On the Ethernet Shield, CS is pin 4. It's set as an output by default.
+  // Note that even if it's not used as the CS pin, the hardware SS pin 
+  // (10 on most Arduino boards, 53 on the Mega) must be left as an output 
+  // or the SD library functions will not work. 
+  pinMode(10, OUTPUT);     // change this to 53 on a mega
+
+
+  // we'll use the initialization code from the utility libraries
+  // since we're just testing if the card is working!
+  if (!sd_card.init(SPI_HALF_SPEED, kChipSelect)) {
+    Serial.println(F("initialization failed. Things to check:"));
+    Serial.println(F("* is a card is inserted?"));
+    Serial.println(F("* Is your wiring correct?"));
+    Serial.println(F("* did you change the chipSelect pin to match your shield or module?"));
+    return;
+  } else {
+   Serial.println(F("Wiring is correct and a card is present.")); 
+   g_sd_present = true;
+  }
+
+  // print the type of card
+  Serial.print(F("\nCard type: "));
+  switch(sd_card.type()) {
+    case SD_CARD_TYPE_SD1:
+      Serial.println(F("SD1"));
+      break;
+    case SD_CARD_TYPE_SD2:
+      Serial.println(F("SD2"));
+      break;
+    case SD_CARD_TYPE_SDHC:
+      Serial.println(F("SDHC"));
+      break;
+    default:
+      Serial.println(F("Unknown"));
+  }
+
+  // Now we will try to open the 'volume'/'partition' - it should be FAT16 or FAT32
+  if (!sd_volume.init(sd_card)) {
+    Serial.println(F("Could not find FAT16/FAT32 partition.\nMake sure you've formatted the card"));
+    return;
+  }
+
+
+  // print the type and size of the first FAT-type volume
+  uint32_t sd_volume_size;
+  Serial.print(F("\nVolume type is FAT"));
+  Serial.println(sd_volume.fatType(), DEC);
+  Serial.println();
+  
+  sd_volume_size = sd_volume.blocksPerCluster();    // clusters are collections of blocks
+  sd_volume_size *= sd_volume.clusterCount();       // we'll have a lot of clusters
+  sd_volume_size *= 512;                            // SD card blocks are always 512 bytes
+  Serial.print(F("Volume size (bytes): "));
+  Serial.println(sd_volume_size);
+  Serial.print(F("Volume size (Kbytes): "));
+  sd_volume_size /= 1024;
+  Serial.println(sd_volume_size);
+  Serial.print(F("Volume size (Mbytes): "));
+  sd_volume_size /= 1024;
+  Serial.println(sd_volume_size);
+
+  
+  Serial.println(F("\nFiles found on the card (name, date and size in bytes): "));
+  sd_root.openRoot(sd_volume);
+  
+  // list all files in the card with date and size
+  sd_root.ls(LS_R | LS_DATE | LS_SIZE);
+}
+
+//////////////////////////////
 // Menu Setup
 //////////////////////////////
 
@@ -1701,6 +1786,7 @@ void ShotListener() {
 void setup() {
   randomSeed(analogRead(1));
   DEBUG_SETUP();
+  SetupSD();
   EEPROMSetup();
   MenuSetup();
   LCDSetup();
