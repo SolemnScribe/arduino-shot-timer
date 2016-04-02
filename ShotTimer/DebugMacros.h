@@ -97,7 +97,7 @@
       serial_print_p(kMillisStr);                        \
       Serial.print(millis());                           \
       serial_print_p(kBytesStr);                         \
-      Serial.print(FreeRam());                          \
+      Serial.print(free_ram());                          \
       serial_print_p(kColStr);                           \
       Serial.print(__PRETTY_FUNCTION__);                \
       serial_print_p(kSpaceStr);                         \
@@ -114,7 +114,7 @@
       serial_print_p(kMillisStr);                        \
       Serial.print(millis());                           \
       serial_print_p(kBytesStr);                         \
-      Serial.print(FreeRam());                          \
+      Serial.print(free_ram());                          \
       serial_print_p(kColStr);                           \
       Serial.print(__PRETTY_FUNCTION__);                \
       serial_print_p(kSpaceStr);                         \
