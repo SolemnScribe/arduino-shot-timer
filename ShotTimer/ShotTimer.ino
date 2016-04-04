@@ -58,7 +58,7 @@
 // Comment this out to disable debug information and remove all
 // DEBUG messages at compile time
 // To preserve SRAM while debugging, set shotLimit to 50 or less
-// #define DEBUG
+//#define DEBUG
 #include "DebugMacros.h"
 
 //////////////////////////////
@@ -78,7 +78,7 @@
 #include <SD.h>
 
 // EEPROM additional non-volatile space 
-#include <EEPROM.h>
+// #include <EEPROM.h>
 
 // EEWrap allows you to read/write from EEPROM without special functions and 
 // without directly specifying EEPROM address space. 
@@ -87,6 +87,9 @@
 
 //Wire library lets you manage I2C and 2 pin
 #include <Wire.h>
+
+//string functions
+#include <string.h>
 
 //Chrono - LightChrono - chronometer - to replace StopWatch
 #include <LightChrono.h>
@@ -130,6 +133,9 @@
 //Helper functions for managing the LCD Display
 #include "LCDHelpers.h"
 
+//Helper functions for SD card management
+#include "SDHelpers.h" 
+
 ////////////////////////////////////////////////////////////
 // CONSTANTS
 ////////////////////////////////////////////////////////////
@@ -147,7 +153,7 @@ const int16_p PROGMEM kBeepNote = NOTE_C4;
 // https://github.com/Chris--A/PGMWrap/blob/master/examples/advanced/use_within_classes/use_within_classes.ino 
 // More detailed example of dealing with strings and arrays in PROGMEM:
 // http://www.gammon.com.au/progmem
-const char PROGMEM kMainName[] = "Shot Timer v.2";
+const char PROGMEM kMainName[] = "Shot Timer v.3";
 const char PROGMEM kStartName[] = "[Start]";
 const char PROGMEM kReviewName[] = "[Review]";
 const char PROGMEM kParName[] = "Set Par >>";
@@ -1378,79 +1384,45 @@ void EEPROMSetup() {
 
 //////////////////////////////
 // SD Setup
+//
+// byte g_delay_time = 11;
+// byte g_beep_vol = 10;
+// byte g_sensitivity = 1;
+// byte g_sample_window = 50;
 //////////////////////////////
 
-void SetupSD() {
-  Serial.begin(9600);
-  Serial.print(F("Initializing SD card..."));
-  // On the Ethernet Shield, CS is pin 4. It's set as an output by default.
-  // Note that even if it's not used as the CS pin, the hardware SS pin 
-  // (10 on most Arduino boards, 53 on the Mega) must be left as an output 
-  // or the SD library functions will not work. 
-  pinMode(10, OUTPUT);     // change this to 53 on a mega
-
-
-  // we'll use the initialization code from the utility libraries
-  // since we're just testing if the card is working!
-  if (!sd_card.init(SPI_HALF_SPEED, kChipSelect)) {
-    Serial.println(F("initialization failed. Things to check:"));
-    Serial.println(F("* is a card is inserted?"));
-    Serial.println(F("* Is your wiring correct?"));
-    Serial.println(F("* did you change the chipSelect pin to match your shield or module?"));
-    return;
+void SDSetup ()
+{
+  if (!sd_card.exists("ShotTimer/settings.st")){
+    Serial.println("settings.st does not exist, creating it");  
+    settings_file = sd_root.open("ShotTimer/settings.st", FILE_WRITE);
+    //g_delay_time
+    settings_file.print(F("[")); 
+    settings_file.print(F("g_delay_time="));
+    settings_file.print(g_delay_time);
+    settings_file.println("]");
+    //g_beep_vol
+    settings_file.print(F("[")); 
+    settings_file.print(F("g_beep_vol="));
+    settings_file.print(g_beep_vol);
+    settings_file.println("]");
+    //g_sensitivity
+    settings_file.print(F("[")); 
+    settings_file.print(F("g_sensitivity="));
+    settings_file.print(g_sensitivity);
+    settings_file.println("]");
+    //g_sample_window
+    settings_file.print(F("[")); 
+    settings_file.print(F("g_sample_window="));
+    settings_file.print(g_sample_window);
+    settings_file.println("]");
+    //write the settings file
+    settings_file.close(); 
   } else {
-   Serial.println(F("Wiring is correct and a card is present.")); 
-   g_sd_present = true;
+    ReadSDSettings(&sd_card); // this should maybe pass in a settings file
   }
-
-  // print the type of card
-  Serial.print(F("\nCard type: "));
-  switch(sd_card.type()) {
-    case SD_CARD_TYPE_SD1:
-      Serial.println(F("SD1"));
-      break;
-    case SD_CARD_TYPE_SD2:
-      Serial.println(F("SD2"));
-      break;
-    case SD_CARD_TYPE_SDHC:
-      Serial.println(F("SDHC"));
-      break;
-    default:
-      Serial.println(F("Unknown"));
-  }
-
-  // Now we will try to open the 'volume'/'partition' - it should be FAT16 or FAT32
-  if (!sd_volume.init(sd_card)) {
-    Serial.println(F("Could not find FAT16/FAT32 partition.\nMake sure you've formatted the card"));
-    return;
-  }
-
-
-  // print the type and size of the first FAT-type volume
-  uint32_t sd_volume_size;
-  Serial.print(F("\nVolume type is FAT"));
-  Serial.println(sd_volume.fatType(), DEC);
-  Serial.println();
-  
-  sd_volume_size = sd_volume.blocksPerCluster();    // clusters are collections of blocks
-  sd_volume_size *= sd_volume.clusterCount();       // we'll have a lot of clusters
-  sd_volume_size *= 512;                            // SD card blocks are always 512 bytes
-  Serial.print(F("Volume size (bytes): "));
-  Serial.println(sd_volume_size);
-  Serial.print(F("Volume size (Kbytes): "));
-  sd_volume_size /= 1024;
-  Serial.println(sd_volume_size);
-  Serial.print(F("Volume size (Mbytes): "));
-  sd_volume_size /= 1024;
-  Serial.println(sd_volume_size);
-
-  
-  Serial.println(F("\nFiles found on the card (name, date and size in bytes): "));
-  sd_root.openRoot(sd_volume);
-  
-  // list all files in the card with date and size
-  sd_root.ls(LS_R | LS_DATE | LS_SIZE);
 }
+
 
 //////////////////////////////
 // Menu Setup
@@ -1786,8 +1758,9 @@ void ShotListener() {
 void setup() {
   randomSeed(analogRead(1));
   DEBUG_SETUP();
-  SetupSD();
-  EEPROMSetup();
+  SDCheck();
+  SDSetup();
+  //EEPROMSetup();
   MenuSetup();
   LCDSetup();
   DEBUG_PRINTLN(F("Setup Complete"), 0);
