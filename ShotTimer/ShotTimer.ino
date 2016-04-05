@@ -1393,9 +1393,9 @@ void EEPROMSetup() {
 
 void SDSetup ()
 {
-  if (!sd_card.exists("ShotTimer/settings.st")){
+  if (!SD.exists("ShotTimer/settings.st")){
     Serial.println("settings.st does not exist, creating it");  
-    settings_file = sd_root.open("ShotTimer/settings.st", FILE_WRITE);
+    File settings_file = SD.open("ShotTimer/settings.st", FILE_WRITE);
     //g_delay_time
     settings_file.print(F("[")); 
     settings_file.print(F("g_delay_time="));
@@ -1419,7 +1419,8 @@ void SDSetup ()
     //write the settings file
     settings_file.close(); 
   } else {
-    ReadSDSettings(&sd_card); // this should maybe pass in a settings file
+    ReadSDSettings(&g_delay_time, &g_beep_vol, 
+                   &g_sensitivity, &g_sample_window);
   }
 }
 
@@ -1758,7 +1759,8 @@ void ShotListener() {
 void setup() {
   randomSeed(analogRead(1));
   DEBUG_SETUP();
-  SDCheck();
+  SDCheck(&sd_card, &sd_volume, &sd_root, 
+          &kChipSelect, &g_sd_present);
   SDSetup();
   //EEPROMSetup();
   MenuSetup();

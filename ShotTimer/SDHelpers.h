@@ -28,8 +28,8 @@
   // SD Check
   //////////////////////////////
   
-  void SDCheck(Sd2Card* sd_card, SdVolume* sd_volume, SdFile* sd_root,
-               int* kChipSelect, boolean* g_sd_present) {
+  void SDCheck(Sd2Card* sd_card, SdVolume* sd_volume, SdFile* sd_root, \
+               const int* kChipSelect, boolean* g_sd_present) {
     Serial.begin(9600);
     Serial.print(F("Initializing SD card..."));
     // On the Ethernet Shield, CS is pin 4. It's set as an output by default.
@@ -99,36 +99,60 @@
     // list all files in the card with date and size
     sd_root->ls(LS_R | LS_DATE | LS_SIZE);
   }
-  
+
+
+  //////////////////////////////
+  // ApplySetting
+  // http://overskill.alexshu.com/saving-loading-settings-on-sd-card-with-arduino/ 
+  // byte g_delay_time = 11;
+  // byte g_beep_vol = 10;
+  // byte g_sensitivity = 1;
+  // byte g_sample_window = 50;
+  //////////////////////////////
+   void ApplySetting(char setting_name[], char setting_value[], byte* g_delay_time, byte* g_beep_vol, 
+                     byte* g_sensitivity, byte* g_sample_window) {
+      if (strcmp(setting_name,"g_delay_time") == 0){
+        *g_delay_time = atoi(setting_value); 
+      } else if (strcmp(setting_name,"g_beep_vol") == 0){
+        *g_beep_vol = atoi(setting_value);
+      } else if (strcmp(setting_name,"g_sensitivity") == 0){
+        *g_sensitivity = atoi(setting_value);
+      } else if (strcmp(setting_name,"g_sample_window") == 0){
+        *g_sample_window = atoi(setting_value);
+      } else
+        Serial.println(F("That's not a valid setting_name")); 
+
+   }
   
   //////////////////////////////
   // ReadSDSettings
   // https://www.reddit.com/r/arduino/comments/2zzd41/need_help_combining_2_char_arrays/cpnqvfz
   //////////////////////////////
-  void ReadSDSettings(Sd2Card* sd_card, SdFile* sd_root){
-    char character;
+  void ReadSDSettings(byte* g_delay_time, byte* g_beep_vol, 
+                      byte* g_sensitivity, byte* g_sample_window){
+    char character[1] = "";
     char setting_name[17] = "";
     char setting_value[3] = "";
-    File sd_file = sd_root->open("ShotTimer/settings.st");
+    File sd_file = SD.open("ShotTimer/settings.st");
     if (sd_file) {
-      while (sd_file->available()) {
-        character = sd_file.read();
-        while((sd_file.available()) && (character != '[')){
-          character = sd_file.read();
+      while (sd_file.available()) {
+        character[1] = sd_file.read();
+        while((sd_file.available()) && (character[1] != '[')){
+          character[1] = sd_file.read();
         }
-        character = sd_file.read();
-        while((sd_file.available()) && (character != '=')){
+        character[1] = sd_file.read();
+        while((sd_file.available()) && (character[1] != '=')){
           strcat(setting_name, character); 
           //settingName = settingName + character;
-          character = sd_file.read();
+          character[1] = sd_file.read();
         }
-        character = sd_file.read();
-        while((sd_file.available()) && (character != ']')){
+        character[1] = sd_file.read();
+        while((sd_file.available()) && (character[1] != ']')){
           strcat(setting_value, character);
           //settingValue = settingValue + character;
-          character = sd_file.read();
+          character[1] = sd_file.read();
         }
-        if(character == ']'){
+        if(character[1] == ']'){
          /*
          //Debuuging Printing
          Serial.print("Name:");
@@ -137,10 +161,11 @@
          Serial.println(settingValue);
          */
          // Apply the value to the parameter
-          applySetting(setting_name,setting_value);
+         ApplySetting(setting_name, setting_value, g_delay_time, 
+                      g_beep_vol, g_sensitivity, g_sample_window);
          // Reset Strings
-          setting_name = "";
-          setting_value = "";
+          setting_name[0] = '\0';
+          setting_value[0] = '\0';
           }
       }
       // close the file:
@@ -149,58 +174,35 @@
     // if the file didn't open, print an error:
     Serial.println("error opening settings.st");
     }
-  }
-  
-  //////////////////////////////
-  // ApplySettings
-  // http://overskill.alexshu.com/saving-loading-settings-on-sd-card-with-arduino/ 
-  // byte g_delay_time = 11;
-  // byte g_beep_vol = 10;
-  // byte g_sensitivity = 1;
-  // byte g_sample_window = 50;
-  //////////////////////////////
-   void ApplySetting(char setting_name[], char setting_value[]) {
-    
-      if (strcmp(setting_name,"g_delay_time") == 0){
-        g_delay_time = atoi(setting_value); 
-      } else if (strcmp(setting_name,"g_beep_vol") == 0){
-        g_beep_vol = atoi(setting_value);
-      } else if (strcmp(setting_name,"g_sensitivity") == 0){
-        g_sensitivity = atoi(setting_value);
-      } else if (strcmp(setting_name,"g_sample_window") == 0){
-        g_sample_window = atoi(setting_value);
-      } else
-        Serial.println(F("That's not a valid setting_name")); 
-
-   }
-  
+  } 
   
   //////////////////////////////
   // WriteSDSettings
   // http://overskill.alexshu.com/saving-loading-settings-on-sd-card-with-arduino/ 
   //////////////////////////////
   
-  void WriteSDSettings(Sd2Card* sd_card, SdFile* sd_root) {
+  void WriteSDSettings(byte* g_delay_time, byte* g_beep_vol, 
+                     byte* g_sensitivity, byte* g_sample_window) {
     // Delete the old One
-    sd_card->remove("settings.txt");
+    SD.remove("settings.txt");
     // Create new one
-    File sd_file = sd_root->open("settings.txt", FILE_WRITE);
+    File sd_file = SD.open("settings.txt", FILE_WRITE);
     // writing in the file works just like regular print()/println() function
     sd_file.print("[");
-    sd_file.print("exINT=");
-    sd_file.print(exINT);
+    sd_file.print("g_delay_time=");
+    sd_file.print(*g_delay_time);
     sd_file.println("]");
     sd_file.print("[");
-    sd_file.print("exFloat=");
-    sd_file.print(exFloat,5);
+    sd_file.print("g_beep_volt=");
+    sd_file.print(*g_beep_vol);
     sd_file.println("]");
     sd_file.print("[");
-    sd_file.print("exBoolean=");
-    sd_file.print(exBoolean);
+    sd_file.print("g_sensitivity=");
+    sd_file.print(*g_sensitivity);
     sd_file.println("]");
     sd_file.print("[");
-    sd_file.print("exLong=");
-    sd_file.print(exLong);
+    sd_file.print("g_sample_window=");
+    sd_file.print(*g_sample_window);
     sd_file.println("]");
     // close the file:
     sd_file.close();
