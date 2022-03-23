@@ -91,7 +91,8 @@
 #include <MenuSystem.h>
 
 //Adafruit RGB LCD Shield Library
-#include <Adafruit_RGBLCDShield.h>
+//#include <Adafruit_RGBLCDShield.h>
+#include <LiquidCrystal.h>
 
 //////////////////////////////
 // Libraries - Other
@@ -126,11 +127,28 @@
 //Helper functions for managing the LCD Display
 #include "LCDHelpers.h"
 
+//////////////
+// DEFINITIONS
+//////////////
+
+
+// define some values used by the panel and buttons
+int button_delay  = 200;
+int lcd_key     = 0;
+int adc_key_in  = 0;
+#define BUTTON_RIGHT  0
+#define BUTTON_UP     1
+#define BUTTON_DOWN   2
+#define BUTTON_LEFT   3
+#define BUTTON_SELECT 4
+#define BUTTON_NONE   5
+
 ////////////////////////////////////////////////////////////
 // CONSTANTS
 ////////////////////////////////////////////////////////////
-const uint8_p PROGMEM kMicPin = A0; //set the input for the mic/amplifier 
-                                    // the mic/amp is connected to analog pin 0
+const uint8_p PROGMEM kMicPin = A1; //set the input for the mic/amplifier 
+                                    // the mic/amp is connected to analog pin 1
+									// buzzer on pwm Pins 9 & 10 (0) for ATmega328, ATmega128, ATmega640, ATmega8, Uno, Leonardo, etc.
 const uint8_p PROGMEM kButtonDur = 80;
 const int16_p PROGMEM kBeepDur = 400;
 const int16_p PROGMEM kBeepNote = NOTE_C4;
@@ -234,7 +252,9 @@ LightChrono g_shot_chrono;
 // this is Analog 4 and 5 so you can't use those for analogRead() anymore
 // However, you can connect other I2C sensors to the I2C bus and share
 // the I2C bus.
-Adafruit_RGBLCDShield g_lcd = Adafruit_RGBLCDShield();
+//Adafruit_RGBLCDShield g_lcd = Adafruit_RGBLCDShield();
+LiquidCrystal g_lcd(8, 9, 4, 5, 6, 7);
+
 
 //////////////////////////////
 //Menus and Menu Items
@@ -261,6 +281,30 @@ Menu main_menu(kMainName);
 // must be prototyped manually
 // A prototype is simply an empty declaration
 ////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////
+// Read Buttons
+//////////////////////////////////////////////////////////
+
+
+int read_LCD_buttons()
+{
+ adc_key_in = analogRead(0);      // read the value from the sensor 
+ if (adc_key_in > 1000) return BUTTON_NONE; // We make this the 1st option for speed reasons since it will be the most likely result
+
+
+ if (adc_key_in < 50)   return BUTTON_RIGHT;  
+ if (adc_key_in < 195)  return BUTTON_UP; 
+ if (adc_key_in < 380)  return BUTTON_DOWN; 
+ if (adc_key_in < 555)  return BUTTON_LEFT; 
+ if (adc_key_in < 790)  return BUTTON_SELECT;   
+
+
+
+ return BUTTON_NONE;  // when all others fail, return this...
+
+}
+
 
 //////////////////////////////
 // Render the current menu screen
@@ -1420,15 +1464,14 @@ void LCDSetup() {
 // Button Listener
 // returns true if the button state 
 //////////////////////////////
-void ButtonListener(Adafruit_RGBLCDShield* g_lcd, 
-                    uint8_t* b_state, ProgramState* p_state) {
+void ButtonListener(uint8_t* b_state, ProgramState* p_state) {
   //DEBUG_PRINT(F("p_state: ")); DEBUG_PRINTLN(*p_state,0);
   //DEBUG_PRINT(F("g_current_state: ")); DEBUG_PRINTLN(g_current_state,0);
   ///////////////
   // buttonStateManager
   ///////////////
   //DEBUG_PRINTLN(F("Listening to button input"),0);
-  uint8_t state_now = g_lcd->readButtons();
+  uint8_t state_now = read_LCD_buttons();
   //DEBUG_PRINT(F("state_now: ")); DEBUG_PRINTLN(state_now,0);
   //DEBUG_PRINT(F("b_state: ")); DEBUG_PRINTLN(*b_state, 0);
   uint8_t new_button = state_now & ~*b_state; // true if state_now != b_state
@@ -1709,6 +1752,6 @@ void setup() {
 
 void loop() {
   //Probably all button actions should come before RunTimer()
-  ButtonListener(&g_lcd, &g_buttons_state, &g_current_state); 
+  ButtonListener(&g_buttons_state, &g_current_state); 
   RunTimer(&g_current_state, &g_par_enabled); 
 } 
