@@ -312,7 +312,6 @@ int read_LCD_buttons()
 
 void RenderMenu() {
   Menu const* kMenu = tm.get_current_menu();
-  g_lcd.setBacklight(WHITE);
   g_lcd.clear();
   g_lcd.setCursor(0, 0);
   lcd_print_p(&g_lcd, kMenu->get_name());
@@ -367,7 +366,6 @@ int SampleSound() {
 void on_menu_start_selected(MenuItem* p_menu_item) {
   DEBUG_PRINTLN(F("Starting Timer"),0);
   g_current_state = TIMER;
-  g_lcd.setBacklight(GREEN);
   // reset the values of the array of shots to 0 NOT <= because g_current_shot 
   // is incremented at the end of the last one recorded
   for (int c = 0; c < g_current_shot; c++) { 
@@ -439,20 +437,11 @@ void ParBeeps(boolean* par_state)
 //////////////////////////////
 void StopTimer(boolean out = 0) {
   DEBUG_PRINTLN(F("Stopping Timer"),0);
-  if (out == 1) {
-    g_lcd.setBacklight(RED);
-  }
-  else {
-    g_lcd.setBacklight(WHITE);
-  }
   DEBUG_PRINTLN(F("Timer was stopped at:"), 0);
   g_shot_chrono.elapsed(); // for DEBUG
   for (int i = 0; i < 5; i++) {
     toneAC(kBeepNote, g_beep_vol, 100, false); 
     delay(50);
-  }
-  if (out == 1) {
-    g_lcd.setBacklight(WHITE);
   }
   // Since the timer is stopped move back to last recorded shot.
   // Unless there were only one or no shots. 
@@ -506,7 +495,6 @@ void on_menu_review_selected(MenuItem* p_menu_item) {
     //   DEBUG_PRINTLN(g_shot_times[t],0) // for DEBUG
     // }
     //END DEBUG 
-    g_lcd.setBacklight(VIOLET);
     g_lcd.setCursor(0, 0);
     g_review_shot = g_current_shot; 
     DEBUG_PRINT(F("Reviewing Shot: ")); DEBUG_PRINTLN(g_review_shot + 1,0);
@@ -1099,7 +1087,6 @@ void EditPar() {
   if(g_current_state != SETINDPAR){
     DEBUG_PRINTLN(F("Enter SETINDPAR Mode"), 0);
     g_current_state = SETINDPAR;
-    g_lcd.setBacklight(GREEN);
     g_lcd.setCursor(0, 0);
     g_lcd.print(F("Edit"));
     lcd_print_p(&g_lcd, kClearLine);
@@ -1122,7 +1109,6 @@ void EditPar() {
     DEBUG_PRINTLN(F("Return to SETPARTIMES"), 0);
     Serial.print(g_current_state);
     DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
-    g_lcd.setBacklight(WHITE);
     tm.select();
   }
 }
@@ -1452,7 +1438,6 @@ void MenuSetup()
 void LCDSetup() {
   DEBUG_PRINTLN(F("Setting up the LCD"),0);
   g_lcd.begin(16, 2);
-  g_lcd.setBacklight(WHITE);
   RenderMenu();
 }
 
