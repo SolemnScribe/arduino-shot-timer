@@ -136,12 +136,12 @@
 int button_delay  = 200;
 int lcd_key     = 0;
 int adc_key_in  = 0;
-#define BUTTON_RIGHT  0
-#define BUTTON_UP     1
-#define BUTTON_DOWN   2
-#define BUTTON_LEFT   3
-#define BUTTON_SELECT 4
-#define BUTTON_NONE   5
+//#define BUTTON_RIGHT  0
+//#define BUTTON_UP     1
+//#define BUTTON_DOWN   2
+//#define BUTTON_LEFT   3
+//#define BUTTON_SELECT 4
+//#define BUTTON_NONE   5
 
 ////////////////////////////////////////////////////////////
 // CONSTANTS
